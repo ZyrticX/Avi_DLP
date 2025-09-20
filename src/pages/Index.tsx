@@ -19,17 +19,17 @@ const Index = () => {
   const [isPlaying, setIsPlaying] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-white p-4 text-black">
       
       {/* כותרת ראשית */}
       <div className="text-center mb-12">
         <div className="flex items-center justify-center gap-3 mb-4">
           <Music className="w-12 h-12 text-primary" />
-          <h1 className="text-6xl font-bold text-foreground">
+          <h1 className="text-4xl md:text-6xl font-bold text-black">
             YouTube Cutter Pro
           </h1>
         </div>
-        <p className="text-2xl text-muted-foreground mb-6">
+        <p className="text-xl md:text-2xl text-gray-600 mb-6">
           חתכו וערכו סרטוני YouTube בקלות
         </p>
         <div className="flex gap-4 justify-center">
@@ -40,10 +40,10 @@ const Index = () => {
       </div>
 
       {/* ממשק ראשי */}
-      <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-8">
+      <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
         
         {/* הכנסת לינק */}
-        <Card className="p-6">
+        <Card className="bg-green-50 border-2 border-green-500 p-4 md:p-6">
           <CardHeader>
             <CardTitle className="text-2xl flex items-center gap-2">
               <Upload className="w-6 h-6 text-primary" />
