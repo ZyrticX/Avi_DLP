@@ -6,32 +6,32 @@
 
 @layer base {
   :root {
-    /* צבעים ברורים לראייה */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 0%;
+    /* צבעי אדום-כתום לממשק יפה וגרפי */
+    --background: 15 100% 98%;
+    --foreground: 0 0% 10%;
 
-    --card: 0 0% 98%;
-    --card-foreground: 0 0% 0%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 0%;
+    --popover-foreground: 0 0% 10%;
 
-    /* ירוק בהיר למניעת בעיות צפייה */
-    --primary: 142 76% 36%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 142 76% 50%;
+    /* אדום ראשי */
+    --primary: 10 85% 55%;
+    --primary-foreground: 0 0% 98%;
+    --primary-glow: 15 90% 60%;
 
-    /* כחול בהיר */
-    --secondary: 213 94% 68%;
-    --secondary-foreground: 0 0% 0%;
+    /* כתום משני */
+    --secondary: 25 95% 60%;
+    --secondary-foreground: 0 0% 98%;
 
-    /* אפור בהיר */
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    /* רקע בהיר */
+    --muted: 20 80% 95%;
+    --muted-foreground: 0 0% 45%;
 
-    /* סגול בהיר */
-    --accent: 270 95% 75%;
-    --accent-foreground: 0 0% 0%;
+    /* כתום-אדום מבטא */
+    --accent: 5 85% 65%;
+    --accent-foreground: 0 0% 98%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
@@ -42,15 +42,15 @@
 
     --radius: 0.75rem;
 
-    /* Audio-specific design tokens */
-    --audio-waveform: 180 100% 50%;
-    --audio-progress: 120 100% 50%;
-    --audio-inactive: 240 5% 25%;
+    /* Audio-specific design tokens - אדום כתום */
+    --audio-waveform: 10 85% 55%;
+    --audio-progress: 25 95% 60%;
+    --audio-inactive: 0 0% 25%;
     
-    /* Gradients for modern audio aesthetic */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
-    --gradient-audio: linear-gradient(90deg, hsl(var(--audio-waveform)) 0%, hsl(var(--secondary)) 50%, hsl(var(--accent)) 100%);
-    --gradient-background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(240 8% 6%) 100%);
+    /* Gradients for modern audio aesthetic - אדום כתום */
+    --gradient-primary: linear-gradient(135deg, hsl(10, 85%, 55%), hsl(25, 95%, 60%));
+    --gradient-audio: linear-gradient(90deg, hsl(10, 85%, 55%) 0%, hsl(25, 95%, 60%) 50%, hsl(5, 85%, 65%) 100%);
+    --gradient-background: linear-gradient(180deg, hsl(15, 100%, 98%) 0%, hsl(20, 80%, 95%) 100%);
     
     /* Audio control shadows */
     --shadow-audio: 0 8px 32px hsl(var(--primary) / 0.3);
