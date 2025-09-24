@@ -285,17 +285,8 @@ const Index = () => {
           </CardHeader>
           <CardContent className="space-y-8">
             
-            {/* תצוגה מקדימה */}
-            <div className="aspect-video bg-gradient-to-br from-muted to-background rounded-xl border-2 border-dashed border-accent/30 flex items-center justify-center relative">
-              <div className="text-center">
-                <Video className="w-20 h-20 text-accent mx-auto mb-4" />
-                <p className="text-2xl text-accent font-semibold mb-2">תצוגה מקדימה</p>
-                <p className="text-lg text-muted-foreground">הוידאו יופיע כאן לאחר הטעינה</p>
-              </div>
-            </div>
-
             {/* בקרות מעל הנגן - שתי שורות */}
-            <div className="space-y-3">
+            <div className="space-y-3 mb-4">
               {/* שורה ראשונה: דיבוב וכתוביות */}
               <div className="flex justify-center gap-4">
                 <Button variant="outline" size="sm" className="px-4 py-2">
@@ -321,6 +312,34 @@ const Index = () => {
               </div>
             </div>
 
+            {/* תצוגה מקדימה - מורחבת קצת */}
+            <div className="w-full max-w-5xl mx-auto">
+              <div className="aspect-video bg-gradient-to-br from-muted to-background rounded-xl border-2 border-dashed border-accent/30 flex items-center justify-center relative">
+                <div className="text-center">
+                  <Video className="w-20 h-20 text-accent mx-auto mb-4" />
+                  <p className="text-2xl text-accent font-semibold mb-2">תצוגה מקדימה</p>
+                  <p className="text-lg text-muted-foreground">הוידאו יופיע כאן לאחר הטעינה</p>
+                </div>
+              </div>
+              
+              {/* ציר זמן מתחת לנגן */}
+              <div className="mt-2">
+                <Slider
+                  value={currentTime}
+                  onValueChange={setCurrentTime}
+                  max={100}
+                  step={0.1}
+                  className="w-full [&_.slider-thumb]:w-8 [&_.slider-thumb]:h-8"
+                />
+              </div>
+              
+              {/* זמנים מתחת לנגן */}
+              <div className="flex justify-between mt-1 px-1">
+                <span className="text-sm font-mono text-muted-foreground">00:00</span>
+                <span className="text-sm font-mono text-muted-foreground">03:45</span>
+              </div>
+            </div>
+
             {/* בקרות נגן */}
             <div className="bg-gradient-to-r from-primary/5 to-secondary/5 p-3 md:p-6 rounded-xl">
               <div className={`flex justify-center gap-2 md:gap-4 mb-4 md:mb-6 ${isMobile ? 'flex-wrap' : ''}`}>
@@ -342,40 +361,24 @@ const Index = () => {
                 </Button>
               </div>
               
-              {/* ציר זמן וחיתוך */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 md:gap-4">
-                  <span className={`${isMobile ? 'text-sm' : 'text-lg'} font-mono`}>00:00</span>
-                  <div className="flex-1">
-                    <Slider
-                      value={currentTime}
-                      onValueChange={setCurrentTime}
-                      max={100}
-                      step={0.1}
-                      className="w-full [&_.slider-thumb]:w-6 [&_.slider-thumb]:h-6"
-                    />
-                  </div>
-                  <span className={`${isMobile ? 'text-sm' : 'text-lg'} font-mono`}>03:45</span>
-                </div>
-                
-                <div className={`flex justify-center gap-2 md:gap-4 ${isMobile ? 'flex-wrap' : ''}`}>
-                  <Button className="bg-accent hover:bg-accent/90" size={isMobile ? "default" : "lg"}>
-                    <Scissors className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1 md:mr-2`} />
-                    חתוך כאן
-                  </Button>
-                  <Button variant="outline" size={isMobile ? "default" : "lg"}>
-                    <ChevronLeft className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1 md:mr-2`} />
-                    {isMobile ? 'התחלה' : 'נקודת התחלה'}
-                  </Button>
-                  <Button variant="outline" size={isMobile ? "default" : "lg"}>
-                    <ChevronRight className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1 md:mr-2`} />
-                    {isMobile ? 'סיום' : 'נקודת סיום'}
-                  </Button>
-                </div>
+              {/* כפתורי חיתוך */}
+              <div className={`flex justify-center gap-2 md:gap-4 ${isMobile ? 'flex-wrap' : ''} mb-4`}>
+                <Button className="bg-accent hover:bg-accent/90" size={isMobile ? "default" : "lg"}>
+                  <Scissors className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1 md:mr-2`} />
+                  חתוך כאן
+                </Button>
+                <Button variant="outline" size={isMobile ? "default" : "lg"}>
+                  <ChevronLeft className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1 md:mr-2`} />
+                  {isMobile ? 'התחלה' : 'נקודת התחלה'}
+                </Button>
+                <Button variant="outline" size={isMobile ? "default" : "lg"}>
+                  <ChevronRight className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1 md:mr-2`} />
+                  {isMobile ? 'סיום' : 'נקודת סיום'}
+                </Button>
               </div>
 
               {/* עוצמת קול */}
-              <div className="flex items-center gap-4 mt-4 md:mt-6">
+              <div className="flex items-center gap-4">
                 <Volume2 className="w-5 md:w-6 h-5 md:h-6 text-accent" />
                 <Slider value={[75]} max={100} className="flex-1" />
                 <span className={`${isMobile ? 'text-base' : 'text-lg'}`}>75%</span>
