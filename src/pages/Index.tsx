@@ -312,9 +312,9 @@ const Index = () => {
               </div>
             </div>
 
-            {/* תצוגה מקדימה - מורחבת קצת */}
-            <div className="w-full max-w-5xl mx-auto">
-              <div className="aspect-video bg-gradient-to-br from-muted to-background rounded-xl border-2 border-dashed border-accent/30 flex items-center justify-center relative">
+            {/* תצוגה מקדימה - מורחבת קצת ומורמת למעלה */}
+            <div className="w-full max-w-6xl mx-auto mb-8">
+              <div className="aspect-video bg-gradient-to-br from-muted to-background rounded-3xl border-2 border-dashed border-accent/30 flex items-center justify-center relative">
                 <div className="text-center">
                   <Video className="w-20 h-20 text-accent mx-auto mb-4" />
                   <p className="text-2xl text-accent font-semibold mb-2">תצוגה מקדימה</p>
@@ -323,13 +323,13 @@ const Index = () => {
               </div>
               
               {/* ציר זמן מתחת לנגן */}
-              <div className="mt-2">
+              <div className="mt-6">
                 <Slider
                   value={currentTime}
                   onValueChange={setCurrentTime}
                   max={100}
                   step={0.1}
-                  className="w-full [&_.slider-thumb]:w-8 [&_.slider-thumb]:h-8"
+                  className="w-full [&_.slider-thumb]:w-12 [&_.slider-thumb]:h-12"
                 />
               </div>
               
@@ -361,19 +361,19 @@ const Index = () => {
                 </Button>
               </div>
               
-              {/* כפתורי חיתוך */}
-              <div className={`flex justify-center gap-2 md:gap-4 ${isMobile ? 'flex-wrap' : ''} mb-4`}>
-                <Button className="bg-accent hover:bg-accent/90" size={isMobile ? "default" : "lg"}>
-                  <Scissors className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1 md:mr-2`} />
-                  חתוך כאן
+              {/* כפתורי חיתוך בשורה אחת */}
+              <div className="flex justify-between items-center gap-4 mb-4 max-w-2xl mx-auto">
+                <Button variant="outline" size="lg" className="rounded-full px-8 py-3">
+                  <ChevronLeft className="w-5 h-5 mr-2" />
+                  התחלה
                 </Button>
-                <Button variant="outline" size={isMobile ? "default" : "lg"}>
-                  <ChevronLeft className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1 md:mr-2`} />
-                  {isMobile ? 'התחלה' : 'נקודת התחלה'}
+                <Button className="bg-accent hover:bg-accent/90 rounded-full px-8 py-3" size="lg">
+                  <Scissors className="w-5 h-5 mr-2" />
+                  חתוך
                 </Button>
-                <Button variant="outline" size={isMobile ? "default" : "lg"}>
-                  <ChevronRight className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1 md:mr-2`} />
-                  {isMobile ? 'סיום' : 'נקודת סיום'}
+                <Button variant="outline" size="lg" className="rounded-full px-8 py-3">
+                  <ChevronRight className="w-5 h-5 mr-2" />
+                  סיום
                 </Button>
               </div>
 
