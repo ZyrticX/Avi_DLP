@@ -436,27 +436,35 @@ const Index = () => {
             <CardContent className="space-y-6">
               <div className="space-y-3">
                 <label className="text-lg font-medium">פורמט אודיו</label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2">
                   <Button variant="outline" className="text-lg">MP3</Button>
                   <Button variant="outline" className="text-lg">WAV</Button>
                   <Button variant="outline" className="text-lg">FLAC</Button>
                   <Button className="text-lg bg-accent hover:bg-accent/90">AAC</Button>
+                  <Button variant="outline" className="text-lg">OGG</Button>
+                  <Button variant="outline" className="text-lg">M4A</Button>
                 </div>
               </div>
               <div className="space-y-3">
                 <label className="text-lg font-medium">איכות אודיו</label>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-2">
+                  <Button variant="outline" className="text-lg">96k</Button>
                   <Button variant="outline" className="text-lg">128k</Button>
+                  <Button variant="outline" className="text-lg">192k</Button>
                   <Button variant="outline" className="text-lg">256k</Button>
                   <Button className="text-lg bg-accent hover:bg-accent/90">320k</Button>
+                  <Button variant="outline" className="text-lg">FLAC</Button>
                 </div>
               </div>
               <div className="space-y-3">
-                <label className="text-lg font-medium">פורמט וידאו</label>
-                <div className="grid grid-cols-3 gap-3">
+                <label className="text-lg font-medium">רזולוציית וידאו</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <Button variant="outline" className="text-lg">480p</Button>
                   <Button variant="outline" className="text-lg">720p</Button>
                   <Button variant="outline" className="text-lg">1080p</Button>
+                  <Button variant="outline" className="text-lg">1440p</Button>
                   <Button className="text-lg bg-accent hover:bg-accent/90">4K</Button>
+                  <Button variant="outline" className="text-lg">8K</Button>
                 </div>
               </div>
             </CardContent>
