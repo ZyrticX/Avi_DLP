@@ -312,13 +312,13 @@ const Index = () => {
               </div>
             </div>
 
-            {/* תצוגה מקדימה - מורחבת קצת ומורמת למעלה */}
-            <div className="w-full max-w-6xl mx-auto mb-8">
+            {/* תצוגה מקדימה - מתאימה למובייל */}
+            <div className={`w-full ${isMobile ? 'max-w-sm' : 'max-w-4xl'} mx-auto mb-8`}>
               <div className="aspect-video bg-gradient-to-br from-muted to-background rounded-3xl border-2 border-dashed border-accent/30 flex items-center justify-center relative">
                 <div className="text-center">
-                  <Video className="w-20 h-20 text-accent mx-auto mb-4" />
-                  <p className="text-2xl text-accent font-semibold mb-2">תצוגה מקדימה</p>
-                  <p className="text-lg text-muted-foreground">הוידאו יופיע כאן לאחר הטעינה</p>
+                  <Video className={`${isMobile ? 'w-12 h-12' : 'w-20 h-20'} text-accent mx-auto mb-4`} />
+                  <p className={`${isMobile ? 'text-lg' : 'text-2xl'} text-accent font-semibold mb-2`}>תצוגה מקדימה</p>
+                  <p className={`${isMobile ? 'text-sm' : 'text-lg'} text-muted-foreground`}>הוידאו יופיע כאן לאחר הטעינה</p>
                 </div>
               </div>
               
@@ -361,18 +361,18 @@ const Index = () => {
                 </Button>
               </div>
               
-              {/* כפתורי חיתוך בשורה אחת */}
-              <div className="flex justify-between items-center gap-4 mb-4 max-w-2xl mx-auto">
-                <Button variant="outline" size="lg" className="rounded-full px-8 py-3">
-                  <ChevronLeft className="w-5 h-5 mr-2" />
+              {/* כפתורי חיתוך בשורה אחת - מותאם למובייל */}
+              <div className={`flex justify-between items-center gap-2 mb-4 ${isMobile ? 'max-w-xs' : 'max-w-2xl'} mx-auto`}>
+                <Button variant="outline" size={isMobile ? "sm" : "lg"} className={`rounded-full ${isMobile ? 'px-3 py-2 text-sm' : 'px-8 py-3'}`}>
+                  <ChevronLeft className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1`} />
                   התחלה
                 </Button>
-                <Button className="bg-accent hover:bg-accent/90 rounded-full px-8 py-3" size="lg">
-                  <Scissors className="w-5 h-5 mr-2" />
+                <Button className={`bg-accent hover:bg-accent/90 rounded-full ${isMobile ? 'px-4 py-2 text-sm' : 'px-8 py-3'}`} size={isMobile ? "sm" : "lg"}>
+                  <Scissors className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1`} />
                   חתוך
                 </Button>
-                <Button variant="outline" size="lg" className="rounded-full px-8 py-3">
-                  <ChevronRight className="w-5 h-5 mr-2" />
+                <Button variant="outline" size={isMobile ? "sm" : "lg"} className={`rounded-full ${isMobile ? 'px-3 py-2 text-sm' : 'px-8 py-3'}`}>
+                  <ChevronRight className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1`} />
                   סיום
                 </Button>
               </div>
@@ -435,36 +435,36 @@ const Index = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-3">
-                <label className="text-lg font-medium">פורמט אודיו</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button variant="outline" className="text-lg">MP3</Button>
-                  <Button variant="outline" className="text-lg">WAV</Button>
-                  <Button variant="outline" className="text-lg">FLAC</Button>
-                  <Button className="text-lg bg-accent hover:bg-accent/90">AAC</Button>
-                  <Button variant="outline" className="text-lg">OGG</Button>
-                  <Button variant="outline" className="text-lg">M4A</Button>
+                <label className={`${isMobile ? 'text-base' : 'text-lg'} font-medium`}>פורמט אודיו</label>
+                <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-3'} gap-2`}>
+                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>MP3</Button>
+                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>WAV</Button>
+                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>FLAC</Button>
+                  <Button className={`${isMobile ? 'text-sm' : 'text-lg'} bg-accent hover:bg-accent/90`}>AAC</Button>
+                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>OGG</Button>
+                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>M4A</Button>
                 </div>
               </div>
               <div className="space-y-3">
-                <label className="text-lg font-medium">איכות אודיו</label>
-                <div className="grid grid-cols-3 gap-2">
-                  <Button variant="outline" className="text-lg">96k</Button>
-                  <Button variant="outline" className="text-lg">128k</Button>
-                  <Button variant="outline" className="text-lg">192k</Button>
-                  <Button variant="outline" className="text-lg">256k</Button>
-                  <Button className="text-lg bg-accent hover:bg-accent/90">320k</Button>
-                  <Button variant="outline" className="text-lg">FLAC</Button>
+                <label className={`${isMobile ? 'text-base' : 'text-lg'} font-medium`}>איכות אודיו</label>
+                <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-3'} gap-2`}>
+                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>96k</Button>
+                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>128k</Button>
+                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>192k</Button>
+                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>256k</Button>
+                  <Button className={`${isMobile ? 'text-sm' : 'text-lg'} bg-accent hover:bg-accent/90`}>320k</Button>
+                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>FLAC</Button>
                 </div>
               </div>
               <div className="space-y-3">
-                <label className="text-lg font-medium">רזולוציית וידאו</label>
-                <div className="grid grid-cols-3 gap-2">
-                  <Button variant="outline" className="text-lg">480p</Button>
-                  <Button variant="outline" className="text-lg">720p</Button>
-                  <Button variant="outline" className="text-lg">1080p</Button>
-                  <Button variant="outline" className="text-lg">1440p</Button>
-                  <Button className="text-lg bg-accent hover:bg-accent/90">4K</Button>
-                  <Button variant="outline" className="text-lg">8K</Button>
+                <label className={`${isMobile ? 'text-base' : 'text-lg'} font-medium`}>רזולוציית וידאו</label>
+                <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-3'} gap-2`}>
+                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>480p</Button>
+                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>720p</Button>
+                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>1080p</Button>
+                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>1440p</Button>
+                  <Button className={`${isMobile ? 'text-sm' : 'text-lg'} bg-accent hover:bg-accent/90`}>4K</Button>
+                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>8K</Button>
                 </div>
               </div>
             </CardContent>
