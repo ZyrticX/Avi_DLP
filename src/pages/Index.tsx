@@ -285,120 +285,100 @@ const Index = () => {
           </CardHeader>
           <CardContent className="space-y-8">
             
-            {/* תצוגה מקדימה - מוגדלת */}
-            <div className="w-full h-[70vh] bg-gradient-to-br from-muted to-background rounded-xl border-2 border-dashed border-accent/30 flex items-center justify-center relative">
+            {/* תצוגה מקדימה */}
+            <div className="aspect-video bg-gradient-to-br from-muted to-background rounded-xl border-2 border-dashed border-accent/30 flex items-center justify-center relative">
               <div className="text-center">
-                <Video className="w-24 h-24 text-accent mx-auto mb-6" />
-                <p className="text-3xl text-accent font-semibold mb-4">תצוגה מקדימה</p>
-                <p className="text-xl text-muted-foreground">הוידאו יופיע כאן לאחר הטעינה</p>
+                <Video className="w-20 h-20 text-accent mx-auto mb-4" />
+                <p className="text-2xl text-accent font-semibold mb-2">תצוגה מקדימה</p>
+                <p className="text-lg text-muted-foreground">הוידאו יופיע כאן לאחר הטעינה</p>
               </div>
-              
-              {/* בקרות תרגום ודיבוב עם תפריטים */}
-              <div className="absolute top-6 right-6 flex gap-3">
-                <div className="space-y-2">
-                  <Button variant="outline" className="bg-background/90 backdrop-blur px-6 py-3 text-lg">
-                    <FileText className="w-5 h-5 mr-2" />
-                    כתוביות ▼
-                  </Button>
-                  <div className="hidden bg-background/95 backdrop-blur rounded-lg p-2 space-y-1 border border-secondary/20">
-                    <Button variant="ghost" size="sm" className="w-full justify-start">🇮🇱 עברית</Button>
-                    <Button variant="ghost" size="sm" className="w-full justify-start">🇬🇧 אנגלית</Button>
-                    <Button variant="ghost" size="sm" className="w-full justify-start">🇪🇸 ספרדית</Button>
-                    <Button variant="ghost" size="sm" className="w-full justify-start">🇫🇷 צרפתית</Button>
-                    <Button variant="ghost" size="sm" className="w-full justify-start">🇩🇪 גרמנית</Button>
-                    <Button variant="ghost" size="sm" className="w-full justify-start">🇮🇹 איטלקית</Button>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Button variant="outline" className="bg-background/90 backdrop-blur px-6 py-3 text-lg">
-                    <Volume2 className="w-5 h-5 mr-2" />
-                    דיבוב ▼
-                  </Button>
-                  <div className="hidden bg-background/95 backdrop-blur rounded-lg p-2 space-y-1 border border-secondary/20">
-                    <Button variant="ghost" size="sm" className="w-full justify-start">🇮🇱 עברית</Button>
-                    <Button variant="ghost" size="sm" className="w-full justify-start">🇺🇸 אמריקאית</Button>
-                    <Button variant="ghost" size="sm" className="w-full justify-start">🇬🇧 בריטית</Button>
-                    <Button variant="ghost" size="sm" className="w-full justify-start">🇪🇸 ספרדית</Button>
-                    <Button variant="ghost" size="sm" className="w-full justify-start">🇫🇷 צרפתית</Button>
-                    <Button variant="ghost" size="sm" className="w-full justify-start">🇩🇪 גרמנית</Button>
-                  </div>
-                </div>
-              </div>
-              
-              {/* בחירת סוג הורדה */}
-              <div className="absolute bottom-6 left-6 flex gap-3">
-                <Button variant="outline" className="bg-background/90 backdrop-blur px-6 py-3 text-lg">
-                  <Headphones className="w-5 h-5 mr-2" />
-                  חיתוך אודיו
+            </div>
+
+            {/* בקרות מעל הנגן - שתי שורות */}
+            <div className="space-y-3">
+              {/* שורה ראשונה: דיבוב וכתוביות */}
+              <div className="flex justify-center gap-4">
+                <Button variant="outline" size="sm" className="px-4 py-2">
+                  <Volume2 className="w-4 h-4 mr-2" />
+                  דיבוב ▼
                 </Button>
-                <Button variant="outline" className="bg-background/90 backdrop-blur px-6 py-3 text-lg">
-                  <Video className="w-5 h-5 mr-2" />
+                <Button variant="outline" size="sm" className="px-4 py-2">
+                  <FileText className="w-4 h-4 mr-2" />
+                  כתוביות ▼
+                </Button>
+              </div>
+              
+              {/* שורה שנייה: חיתוך וידאו ואודיו */}
+              <div className="flex justify-center gap-4">
+                <Button variant="outline" size="sm" className="px-4 py-2">
+                  <Video className="w-4 h-4 mr-2" />
                   חיתוך וידאו
+                </Button>
+                <Button variant="outline" size="sm" className="px-4 py-2">
+                  <Headphones className="w-4 h-4 mr-2" />
+                  חיתוך אודיו
                 </Button>
               </div>
             </div>
 
-            {/* בקרות נגן עם ריווח מוגדל */}
-            <div className="bg-gradient-to-r from-primary/5 to-secondary/5 p-6 md:p-8 rounded-xl space-y-8">
-              <div className={`flex justify-center gap-4 md:gap-6 ${isMobile ? 'flex-wrap' : ''}`}>
-                <Button variant="outline" size="lg" className="text-lg px-8 py-4">
-                  <SkipBack className="w-6 h-6 mr-2" />
+            {/* בקרות נגן */}
+            <div className="bg-gradient-to-r from-primary/5 to-secondary/5 p-3 md:p-6 rounded-xl">
+              <div className={`flex justify-center gap-2 md:gap-4 mb-4 md:mb-6 ${isMobile ? 'flex-wrap' : ''}`}>
+                <Button variant="outline" size={isMobile ? "default" : "lg"} className={`${isMobile ? 'text-sm px-3' : 'text-lg px-6'}`}>
+                  <SkipBack className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1 md:mr-2`} />
                   -10s
                 </Button>
                 <Button 
-                  size="lg"
+                  size={isMobile ? "default" : "default"}
                   onClick={() => setIsPlaying(!isPlaying)}
-                  className="text-xl px-12 py-4 bg-primary hover:bg-primary/90"
+                  className={`${isMobile ? 'text-base px-4' : 'text-lg px-6'} bg-primary hover:bg-primary/90`}
                 >
-                  {isPlaying ? <Pause className="w-7 h-7 mr-2" /> : <Play className="w-7 h-7 mr-2" />}
+                  {isPlaying ? <Pause className={`${isMobile ? 'w-5 h-5' : 'w-5 h-5'} mr-1 md:mr-2`} /> : <Play className={`${isMobile ? 'w-5 h-5' : 'w-5 h-5'} mr-1 md:mr-2`} />}
                   {isPlaying ? 'עצור' : 'נגן'}
                 </Button>
-                <Button variant="outline" size="lg" className="text-lg px-8 py-4">
-                  <SkipForward className="w-6 h-6 mr-2" />
+                <Button variant="outline" size={isMobile ? "default" : "lg"} className={`${isMobile ? 'text-sm px-3' : 'text-lg px-6'}`}>
+                  <SkipForward className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1 md:mr-2`} />
                   +10s
                 </Button>
               </div>
               
-              {/* ציר זמן מורחב וחיתוך */}
-              <div className="space-y-6">
-                <div className="space-y-3">
-                  <div className="flex-1 px-4">
+              {/* ציר זמן וחיתוך */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 md:gap-4">
+                  <span className={`${isMobile ? 'text-sm' : 'text-lg'} font-mono`}>00:00</span>
+                  <div className="flex-1">
                     <Slider
                       value={currentTime}
                       onValueChange={setCurrentTime}
                       max={100}
                       step={0.1}
-                      className="w-full [&_.slider-thumb]:w-8 [&_.slider-thumb]:h-8 [&_.slider-track]:h-3"
+                      className="w-full [&_.slider-thumb]:w-6 [&_.slider-thumb]:h-6"
                     />
                   </div>
-                  <div className="flex justify-between px-4">
-                    <span className="text-xl font-mono bg-background/50 px-3 py-1 rounded">00:00</span>
-                    <span className="text-xl font-mono bg-background/50 px-3 py-1 rounded">03:45</span>
-                  </div>
+                  <span className={`${isMobile ? 'text-sm' : 'text-lg'} font-mono`}>03:45</span>
                 </div>
                 
-                <div className={`flex justify-center gap-4 md:gap-6 ${isMobile ? 'flex-wrap' : ''}`}>
-                  <Button className="bg-accent hover:bg-accent/90 text-lg px-8 py-4" size="lg">
-                    <Scissors className="w-6 h-6 mr-2" />
+                <div className={`flex justify-center gap-2 md:gap-4 ${isMobile ? 'flex-wrap' : ''}`}>
+                  <Button className="bg-accent hover:bg-accent/90" size={isMobile ? "default" : "lg"}>
+                    <Scissors className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1 md:mr-2`} />
                     חתוך כאן
                   </Button>
-                  <Button variant="outline" size="lg" className="text-lg px-6 py-4">
-                    <ChevronLeft className="w-6 h-6 mr-2" />
-                    נקודת התחלה
+                  <Button variant="outline" size={isMobile ? "default" : "lg"}>
+                    <ChevronLeft className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1 md:mr-2`} />
+                    {isMobile ? 'התחלה' : 'נקודת התחלה'}
                   </Button>
-                  <Button variant="outline" size="lg" className="text-lg px-6 py-4">
-                    <ChevronRight className="w-6 h-6 mr-2" />
-                    נקודת סיום
+                  <Button variant="outline" size={isMobile ? "default" : "lg"}>
+                    <ChevronRight className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1 md:mr-2`} />
+                    {isMobile ? 'סיום' : 'נקודת סיום'}
                   </Button>
                 </div>
               </div>
 
               {/* עוצמת קול */}
-              <div className="flex items-center gap-6">
-                <Volume2 className="w-8 h-8 text-accent" />
-                <Slider value={[75]} max={100} className="flex-1 [&_.slider-track]:h-2" />
-                <span className="text-xl font-semibold bg-background/50 px-3 py-1 rounded">75%</span>
+              <div className="flex items-center gap-4 mt-4 md:mt-6">
+                <Volume2 className="w-5 md:w-6 h-5 md:h-6 text-accent" />
+                <Slider value={[75]} max={100} className="flex-1" />
+                <span className={`${isMobile ? 'text-base' : 'text-lg'}`}>75%</span>
               </div>
             </div>
           </CardContent>
