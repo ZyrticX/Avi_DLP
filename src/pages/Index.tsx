@@ -123,11 +123,36 @@ const Index = () => {
           <CardContent className="space-y-6">
             
             {/* תצוגה מקדימה */}
-            <div className="aspect-video bg-gradient-to-br from-muted to-background rounded-xl border-2 border-dashed border-accent/30 flex items-center justify-center">
+            <div className="aspect-video bg-gradient-to-br from-muted to-background rounded-xl border-2 border-dashed border-accent/30 flex items-center justify-center relative">
               <div className="text-center">
                 <Video className="w-20 h-20 text-accent mx-auto mb-4" />
                 <p className="text-2xl text-accent font-semibold mb-2">תצוגה מקדימה</p>
                 <p className="text-lg text-muted-foreground">הוידאו יופיע כאן לאחר הטעינה</p>
+              </div>
+              
+              {/* בקרות תרגום ודיבוב */}
+              <div className="absolute top-4 right-4 flex gap-2">
+                <Button variant="outline" size="sm" className="bg-background/80 backdrop-blur">
+                  <FileText className="w-4 h-4 mr-1" />
+                  כתוביות
+                </Button>
+                <Button variant="outline" size="sm" className="bg-background/80 backdrop-blur">
+                  <Volume2 className="w-4 h-4 mr-1" />
+                  דיבוב
+                </Button>
+              </div>
+              
+              {/* בחירת שפה */}
+              <div className="absolute bottom-4 left-4 flex gap-2">
+                <Button variant="outline" size="sm" className="bg-background/80 backdrop-blur">
+                  🇬🇧 אנגלית
+                </Button>
+                <Button variant="outline" size="sm" className="bg-background/80 backdrop-blur">
+                  🇪🇸 ספרדית
+                </Button>
+                <Button variant="outline" size="sm" className="bg-background/80 backdrop-blur">
+                  🇫🇷 צרפתית
+                </Button>
               </div>
             </div>
 
@@ -289,10 +314,23 @@ const Index = () => {
                 <Layers3 className="w-6 h-6 mr-2" />
                 איחוד מקטעים עם מיקס
               </Button>
-              <Button variant="outline" size="lg" className="w-full text-lg">
-                <FileText className="w-6 h-6 mr-2" />
-                הורד עם כתוביות
-              </Button>
+              
+              {/* הורדת כתוביות ודיבוב בנפרד */}
+              <div className="border-t pt-4">
+                <p className="text-lg font-semibold mb-3 text-center">הורדות נפרדות</p>
+                <Button variant="outline" size="lg" className="w-full text-lg mb-2">
+                  <FileText className="w-6 h-6 mr-2" />
+                  הורד רק כתוביות (.srt)
+                </Button>
+                <Button variant="outline" size="lg" className="w-full text-lg mb-2">
+                  <Volume2 className="w-6 h-6 mr-2" />
+                  הורד רק דיבוב (.mp3)
+                </Button>
+                <Button variant="outline" size="lg" className="w-full text-lg">
+                  <Video className="w-6 h-6 mr-2" />
+                  הורד וידאו מתורגם
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
