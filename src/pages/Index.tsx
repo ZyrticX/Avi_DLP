@@ -46,7 +46,14 @@ import {
   Headphones,
   GripVertical,
   Clock,
-  Palette
+  Palette,
+  ChevronDown,
+  Crown,
+  Check,
+  X,
+  Star,
+  Sparkles,
+  AlertCircle
 } from "lucide-react";
 
 // SortableItem component for drag and drop segments
@@ -138,6 +145,10 @@ const Index = () => {
   const [fadeOutDuration, setFadeOutDuration] = useState([2]);
   const [projectName, setProjectName] = useState("פרויקט YouTube Cutter");
   const [isEditingName, setIsEditingName] = useState(false);
+  const [startTime, setStartTime] = useState([0]);
+  const [endTime, setEndTime] = useState([100]);
+  const [showStreamingServices, setShowStreamingServices] = useState(false);
+  const [usageCount, setUsageCount] = useState(0); // מספר השימושים של המשתמש
   const isMobile = useIsMobile();
 
   const sensors = useSensors(
@@ -234,11 +245,30 @@ const Index = () => {
 
       <div className="max-w-7xl mx-auto grid gap-8">
         
+        {/* הגבלות שימוש חינמי */}
+        <Card className="max-w-4xl mx-auto mb-8 border-orange-500/30 bg-gradient-to-r from-orange-500/10 to-red-500/10">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 text-center">
+              <AlertCircle className="w-6 h-6 text-orange-500" />
+              <div>
+                <p className="text-lg font-semibold">שימוש חינמי מוגבל</p>
+                <p className="text-sm text-muted-foreground">
+                  עד 2 דקות, איכות בסיסית, 3 ניסיונות ליום. לשימוש מלא - שדרגו למנוי
+                </p>
+                <div className="flex gap-2 mt-2">
+                  <Badge variant="outline">ניסיונות: {3 - usageCount}/3</Badge>
+                  <Badge variant="outline">זמן מקסימלי: 2 דקות</Badge>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* אזור הכנסת לינק */}
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-3 gap-6">
           <Card className="bg-gradient-to-br from-primary/10 to-secondary/10 border-primary/30 shadow-glow">
             <CardHeader>
-              <CardTitle className="text-2xl flex items-center gap-2">
+              <CardTitle className="text-xl flex items-center gap-2">
                 <Youtube className="w-8 h-8 text-primary" />
                 התחבר לחשבון YouTube
               </CardTitle>
@@ -248,13 +278,13 @@ const Index = () => {
                 <Youtube className="w-6 h-6 mr-2" />
                 התחבר לחשבון
               </Button>
-              <p className="text-center text-muted-foreground">משוך פלייליסטים ווידאו מהחשבון שלך</p>
+              <p className="text-center text-muted-foreground text-sm">משוך פלייליסטים ווידאו מהחשבון שלך</p>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-secondary/10 to-accent/10 border-secondary/30">
             <CardHeader>
-              <CardTitle className="text-2xl flex items-center gap-2">
+              <CardTitle className="text-xl flex items-center gap-2">
                 <Link2 className="w-8 h-8 text-secondary" />
                 הדבק לינק ישיר
               </CardTitle>
@@ -271,6 +301,51 @@ const Index = () => {
                 <Upload className="w-6 h-6 mr-2" />
                 טען וידאו
               </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-accent/10 to-primary/10 border-accent/30">
+            <CardHeader>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Music className="w-8 h-8 text-accent" />
+                שירותי סטרימינג
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="relative">
+                <Button 
+                  size="lg" 
+                  className="w-full text-lg bg-accent hover:bg-accent/90"
+                  onClick={() => setShowStreamingServices(!showStreamingServices)}
+                >
+                  <Music className="w-6 h-6 mr-2" />
+                  התחבר לשירות
+                  <ChevronDown className="w-4 h-4 ml-2" />
+                </Button>
+                {showStreamingServices && (
+                  <div className="absolute top-full left-0 w-full mt-2 bg-background border border-border rounded-lg shadow-lg z-50 p-2 space-y-1">
+                    <Button variant="ghost" className="w-full justify-start text-sm">
+                      🎵 Spotify
+                    </Button>
+                    <Button variant="ghost" className="w-full justify-start text-sm">
+                      🎧 SoundCloud
+                    </Button>
+                    <Button variant="ghost" className="w-full justify-start text-sm">
+                      🎵 Apple Music
+                    </Button>
+                    <Button variant="ghost" className="w-full justify-start text-sm">
+                      📱 TikTok
+                    </Button>
+                    <Button variant="ghost" className="w-full justify-start text-sm">
+                      📺 Twitch
+                    </Button>
+                    <Button variant="ghost" className="w-full justify-start text-sm">
+                      🎥 Vimeo
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <p className="text-center text-muted-foreground text-sm">גש לתכנים מהפלטפורמות הפופולריות</p>
             </CardContent>
           </Card>
         </div>
@@ -322,21 +397,78 @@ const Index = () => {
                 </div>
               </div>
               
-              {/* ציר זמן מתחת לנגן */}
-              <div className="mt-6">
-                <Slider
-                  value={currentTime}
-                  onValueChange={setCurrentTime}
-                  max={100}
-                  step={0.1}
-                  className="w-full [&_.slider-thumb]:w-12 [&_.slider-thumb]:h-12"
-                />
-              </div>
-              
-              {/* זמנים מתחת לנגן */}
-              <div className="flex justify-between mt-1 px-1">
-                <span className="text-sm font-mono text-muted-foreground">00:00</span>
-                <span className="text-sm font-mono text-muted-foreground">03:45</span>
+              {/* ציר זמן מתקדם עם סמני חיתוך */}
+              <div className="mt-6 space-y-4">
+                <div className="relative">
+                  {/* ציר הזמן הראשי */}
+                  <Slider
+                    value={currentTime}
+                    onValueChange={setCurrentTime}
+                    max={100}
+                    step={0.1}
+                    className="w-full [&_.slider-thumb]:w-6 [&_.slider-thumb]:h-6 [&_.slider-thumb]:bg-primary"
+                  />
+                  
+                  {/* סמני התחלה וסיום לחיתוך */}
+                  <div className="relative mt-2">
+                    <div className="flex items-center gap-4 mb-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="w-3 h-3 bg-green-500 rounded-full"></span>
+                        <span>התחלה</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="w-3 h-3 bg-red-500 rounded-full"></span>
+                        <span>סיום</span>
+                      </div>
+                    </div>
+                    
+                    {/* סלידר להתחלה */}
+                    <div className="mb-2">
+                      <Slider
+                        value={startTime}
+                        onValueChange={setStartTime}
+                        max={100}
+                        step={0.1}
+                        className="w-full [&_.slider-thumb]:w-4 [&_.slider-thumb]:h-4 [&_.slider-thumb]:bg-green-500"
+                      />
+                    </div>
+                    
+                    {/* סלידר לסיום */}
+                    <div>
+                      <Slider
+                        value={endTime}
+                        onValueChange={setEndTime}
+                        max={100}
+                        step={0.1}
+                        className="w-full [&_.slider-thumb]:w-4 [&_.slider-thumb]:h-4 [&_.slider-thumb]:bg-red-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* זמנים ומידע על החיתוך */}
+                <div className="bg-background/50 rounded-lg p-3 border border-border/50">
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <p className="text-xs text-muted-foreground">התחלה</p>
+                      <p className="font-mono text-sm font-semibold text-green-600">
+                        {Math.floor(startTime[0] * 3.45 / 100 * 60).toString().padStart(2, '0')}:{Math.floor((startTime[0] * 3.45 / 100 % 1) * 60).toString().padStart(2, '0')}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">סיום</p>
+                      <p className="font-mono text-sm font-semibold text-red-600">
+                        {Math.floor(endTime[0] * 3.45 / 100 * 60).toString().padStart(2, '0')}:{Math.floor((endTime[0] * 3.45 / 100 % 1) * 60).toString().padStart(2, '0')}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">אורך המקטע</p>
+                      <p className="font-mono text-sm font-semibold">
+                        {Math.floor((endTime[0] - startTime[0]) * 3.45 / 100 * 60).toString().padStart(2, '0')}:{Math.floor(((endTime[0] - startTime[0]) * 3.45 / 100 % 1) * 60).toString().padStart(2, '0')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -550,6 +682,146 @@ const Index = () => {
           </Card>
         </div>
 
+        {/* כרטיסי מחירים ומנויים */}
+        <Card className="bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 border-primary/20">
+          <CardContent className="p-8">
+            <h3 className="text-4xl font-bold mb-2 text-center bg-gradient-primary bg-clip-text text-transparent">
+              בחר את החבילה שלך
+            </h3>
+            <p className="text-center text-muted-foreground mb-8 text-lg">
+              מכל רמה של שימוש - יש לנו פתרון מושלם בשבילך
+            </p>
+            
+            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+              {/* חבילה חינמית */}
+              <Card className="border-2 border-muted/30 bg-background/50">
+                <CardHeader className="text-center pb-4">
+                  <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                    <Music className="w-8 h-8" />
+                  </div>
+                  <h4 className="text-2xl font-bold">בסיסי</h4>
+                  <div className="text-4xl font-bold">חינם</div>
+                  <p className="text-muted-foreground">מושלם להתחלה</p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-green-500" />
+                      <span className="text-sm">עד 2 דקות לקליप</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-green-500" />
+                      <span className="text-sm">3 ניסיונות ליום</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-green-500" />
+                      <span className="text-sm">איכות 720p</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <X className="w-4 h-4 text-red-500" />
+                      <span className="text-sm text-muted-foreground">בלי חיתוכים מרובים</span>
+                    </div>
+                  </div>
+                  <Button className="w-full mt-6" variant="outline">
+                    התחל חינם
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* חבילת פרו */}
+              <Card className="border-2 border-primary bg-primary/5 relative">
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <Badge className="bg-primary text-primary-foreground px-4 py-1">
+                    <Star className="w-3 h-3 mr-1" />
+                    הכי פופולרי
+                  </Badge>
+                </div>
+                <CardHeader className="text-center pb-4">
+                  <div className="mx-auto w-16 h-16 bg-primary rounded-full flex items-center justify-center mb-4">
+                    <Crown className="w-8 h-8 text-primary-foreground" />
+                  </div>
+                  <h4 className="text-2xl font-bold">פרו</h4>
+                  <div className="text-4xl font-bold">₪29<span className="text-lg text-muted-foreground">/חודש</span></div>
+                  <p className="text-muted-foreground">ליוצרי תוכן</p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-green-500" />
+                      <span className="text-sm">ללא הגבלת זמן</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-green-500" />
+                      <span className="text-sm">עד 100 קליפים ביום</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-green-500" />
+                      <span className="text-sm">איכות 4K</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-green-500" />
+                      <span className="text-sm">חיתוכים מרובים</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-green-500" />
+                      <span className="text-sm">תמיכה בעדיפות</span>
+                    </div>
+                  </div>
+                  <Button className="w-full mt-6 bg-primary hover:bg-primary/90">
+                    התחל ניסיון 7 ימים
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* חבילת פרמיום */}
+              <Card className="border-2 border-accent bg-accent/5">
+                <CardHeader className="text-center pb-4">
+                  <div className="mx-auto w-16 h-16 bg-accent rounded-full flex items-center justify-center mb-4">
+                    <Sparkles className="w-8 h-8 text-accent-foreground" />
+                  </div>
+                  <h4 className="text-2xl font-bold">פרמיום</h4>
+                  <div className="text-4xl font-bold">₪79<span className="text-lg text-muted-foreground">/חודש</span></div>
+                  <p className="text-muted-foreground">לעסקים וסטודיו</p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-green-500" />
+                      <span className="text-sm">כל התכונות של פרו</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-green-500" />
+                      <span className="text-sm">ללא הגבלת קליפים</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-green-500" />
+                      <span className="text-sm">איכות 8K</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-green-500" />
+                      <span className="text-sm">API גישה</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-green-500" />
+                      <span className="text-sm">תמיכה 24/7</span>
+                    </div>
+                  </div>
+                  <Button className="w-full mt-6 bg-accent hover:bg-accent/90">
+                    צור קשר למכירות
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* הערה על התשלום */}
+            <div className="text-center mt-8 p-4 bg-muted/20 rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                לביטול בכל עת • החזר מלא תוך 30 יום • תשלום מאובטח
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* מידע נוסף */}
         <Card className="bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 border-primary/20">
           <CardContent className="p-8">
@@ -583,9 +855,9 @@ const Index = () => {
                 <div className="text-muted-foreground">תרגום וכתוביות אוטומטיות</div>
               </div>
               <div className="text-center p-4 bg-background/50 rounded-lg">
-                <Download className="w-12 h-12 text-accent mx-auto mb-2" />
-                <div className="font-semibold">ללא עלויות</div>
-                <div className="text-muted-foreground">שירות חינמי ללא הגבלה</div>
+                <Crown className="w-12 h-12 text-accent mx-auto mb-2" />
+                <div className="font-semibold">פלטפורמות מרובות</div>
+                <div className="text-muted-foreground">תמיכה בכל שירותי הסטרימינג</div>
               </div>
             </div>
           </CardContent>
