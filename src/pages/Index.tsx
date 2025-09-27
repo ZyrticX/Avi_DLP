@@ -265,23 +265,7 @@ const Index = () => {
         </Card>
 
         {/* אזור הכנסת לינק */}
-        <div className="grid md:grid-cols-3 gap-6">
-          <Card className="bg-gradient-to-br from-primary/10 to-secondary/10 border-primary/30 shadow-glow">
-            <CardHeader>
-              <CardTitle className="text-xl flex items-center gap-2">
-                <Youtube className="w-8 h-8 text-primary" />
-                התחבר לחשבון YouTube
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button size="lg" className="w-full text-lg bg-primary hover:bg-primary/90">
-                <Youtube className="w-6 h-6 mr-2" />
-                התחבר לחשבון
-              </Button>
-              <p className="text-center text-muted-foreground text-sm">משוך פלייליסטים ווידאו מהחשבון שלך</p>
-            </CardContent>
-          </Card>
-
+        <div className="grid md:grid-cols-2 gap-6">
           <Card className="bg-gradient-to-br from-secondary/10 to-accent/10 border-secondary/30">
             <CardHeader>
               <CardTitle className="text-xl flex items-center gap-2">
@@ -323,7 +307,10 @@ const Index = () => {
                   <ChevronDown className="w-4 h-4 ml-2" />
                 </Button>
                 {showStreamingServices && (
-                  <div className="absolute top-full left-0 w-full mt-2 bg-background border border-border rounded-lg shadow-lg z-50 p-2 space-y-1">
+                  <div className="absolute top-full left-0 w-full mt-2 bg-background border border-border rounded-lg shadow-lg z-50 p-2 space-y-1 max-h-80 overflow-y-auto">
+                    <Button variant="ghost" className="w-full justify-start text-sm">
+                      📺 YouTube
+                    </Button>
                     <Button variant="ghost" className="w-full justify-start text-sm">
                       🎵 Spotify
                     </Button>
@@ -334,6 +321,12 @@ const Index = () => {
                       🎵 Apple Music
                     </Button>
                     <Button variant="ghost" className="w-full justify-start text-sm">
+                      📸 Instagram
+                    </Button>
+                    <Button variant="ghost" className="w-full justify-start text-sm">
+                      📘 Facebook
+                    </Button>
+                    <Button variant="ghost" className="w-full justify-start text-sm">
                       📱 TikTok
                     </Button>
                     <Button variant="ghost" className="w-full justify-start text-sm">
@@ -341,6 +334,39 @@ const Index = () => {
                     </Button>
                     <Button variant="ghost" className="w-full justify-start text-sm">
                       🎥 Vimeo
+                    </Button>
+                    <Button variant="ghost" className="w-full justify-start text-sm">
+                      🎶 Deezer
+                    </Button>
+                    <Button variant="ghost" className="w-full justify-start text-sm">
+                      🎵 Pandora
+                    </Button>
+                    <Button variant="ghost" className="w-full justify-start text-sm">
+                      🎧 Mixcloud
+                    </Button>
+                    <Button variant="ghost" className="w-full justify-start text-sm">
+                      🎵 Beatport
+                    </Button>
+                    <Button variant="ghost" className="w-full justify-start text-sm">
+                      🎧 Bandcamp
+                    </Button>
+                    <Button variant="ghost" className="w-full justify-start text-sm">
+                      🎵 Tidal
+                    </Button>
+                    <Button variant="ghost" className="w-full justify-start text-sm">
+                      📻 Radio.com
+                    </Button>
+                    <Button variant="ghost" className="w-full justify-start text-sm">
+                      🎶 Audiomack
+                    </Button>
+                    <Button variant="ghost" className="w-full justify-start text-sm">
+                      🎵 Napster
+                    </Button>
+                    <Button variant="ghost" className="w-full justify-start text-sm">
+                      🎧 8tracks
+                    </Button>
+                    <Button variant="ghost" className="w-full justify-start text-sm">
+                      🎵 Qobuz
                     </Button>
                   </div>
                 )}
