@@ -264,8 +264,40 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        {/* אזור הכנסת לינק */}
-        <div className="grid md:grid-cols-2 gap-6">
+        {/* אזור הכנסת קבצים */}
+        <div className="grid md:grid-cols-3 gap-6">
+          <Card className="bg-gradient-to-br from-primary/10 to-secondary/10 border-primary/30 shadow-glow">
+            <CardHeader>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Upload className="w-8 h-8 text-primary" />
+                בחר קובץ
+              </CardTitle>
+              <div className="flex gap-1 flex-wrap mt-2">
+                <Badge variant="outline" className="text-xs px-2 py-1">💳 בתשלום</Badge>
+                <Badge variant="outline" className="text-xs px-2 py-1">🎥 וידאו</Badge>
+                <Badge variant="outline" className="text-xs px-2 py-1">🎵 אודיו</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="border-2 border-dashed border-primary/30 rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
+                <Upload className="w-12 h-12 text-primary mx-auto mb-2" />
+                <p className="text-lg font-medium">גרור קבצים לכאן</p>
+                <p className="text-sm text-muted-foreground">או לחץ לבחירה</p>
+                <p className="text-xs text-muted-foreground mt-2">MP4, MP3, WAV, MOV</p>
+              </div>
+              <Button size="lg" className="w-full text-lg bg-primary hover:bg-primary/90">
+                <Upload className="w-6 h-6 mr-2" />
+                בחר קבצים
+              </Button>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p>✨ תרגום אוטומטי</p>
+                <p>🎙️ דיבוב בקולות AI</p>
+                <p>✂️ חיתוך חכם</p>
+                <p>🏷️ זיהוי שירים ושמות</p>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="bg-gradient-to-br from-secondary/10 to-accent/10 border-secondary/30">
             <CardHeader>
               <CardTitle className="text-xl flex items-center gap-2">
