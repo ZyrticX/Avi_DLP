@@ -110,27 +110,27 @@ const SortableItem = ({ segment, index, onEdit, onPlay }: {
             <div className="flex gap-2">
               <Button size="sm" onClick={handleSave}>
                 <Save className="w-4 h-4 mr-1" />
-                שמור
+                Save
               </Button>
               <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>
-                ביטול
+                Cancel
               </Button>
             </div>
           </div>
         ) : (
           <>
-            <h3 className="text-lg font-semibold">{segment.title || `מקטע ${index + 1}`}</h3>
+            <h3 className="text-lg font-semibold">{segment.title || `Segment ${index + 1}`}</h3>
             <p className="text-muted-foreground">{segment.start}s - {segment.end}s</p>
           </>
         )}
       </div>
       <Button variant="outline" size="sm" onClick={() => setIsEditing(!isEditing)}>
         <Edit3 className="w-4 h-4 mr-1" />
-        ערוך
+        Edit
       </Button>
       <Button variant="outline" size="sm" onClick={() => onPlay(segment.id)}>
         <Play className="w-4 h-4 mr-1" />
-        נגן
+        Play
       </Button>
     </div>
   );
@@ -143,7 +143,7 @@ const Index = () => {
   const [segments, setSegments] = useState<Array<{id: number, start: number, end: number, title: string}>>([]);
   const [fadeInDuration, setFadeInDuration] = useState([2]);
   const [fadeOutDuration, setFadeOutDuration] = useState([2]);
-  const [projectName, setProjectName] = useState("פרויקט YouTube Cutter");
+  const [projectName, setProjectName] = useState("YouTube Cutter Project");
   const [isEditingName, setIsEditingName] = useState(false);
   const [startTime, setStartTime] = useState([0]);
   const [endTime, setEndTime] = useState([100]);
@@ -221,13 +221,13 @@ const Index = () => {
           </div>
         </div>
         <p className="text-xl md:text-2xl text-muted-foreground mb-6">
-          חתכו וערכו סרטוני YouTube בקלות - ללא עלויות
+          Cut and edit YouTube videos easily - no cost
         </p>
         <div className="flex gap-4 justify-center flex-wrap">
-          <Badge className="text-lg px-6 py-3 bg-primary text-primary-foreground">חיתוך מהיר</Badge>
-          <Badge className="text-lg px-6 py-3 bg-secondary text-secondary-foreground">איכות גבוהה</Badge>
-          <Badge className="text-lg px-6 py-3 bg-accent text-accent-foreground">זיהוי שירים</Badge>
-          <Badge className="text-lg px-6 py-3 bg-muted text-muted-foreground">חינמי</Badge>
+          <Badge className="text-lg px-6 py-3 bg-primary text-primary-foreground">Fast Cutting</Badge>
+          <Badge className="text-lg px-6 py-3 bg-secondary text-secondary-foreground">High Quality</Badge>
+          <Badge className="text-lg px-6 py-3 bg-accent text-accent-foreground">Song Recognition</Badge>
+          <Badge className="text-lg px-6 py-3 bg-muted text-muted-foreground">Free</Badge>
         </div>
       </div>
 
@@ -237,7 +237,7 @@ const Index = () => {
           <div className="flex items-center gap-3 text-center">
             <Settings className="w-6 h-6 text-primary" />
             <p className="text-lg">
-              לשימוש מלא באפליקציה (חיבור ליוטיוב, חיתוך וידאו, שמירת קבצים), יש להתחבר ל-Supabase דרך הכפתור הירוק למעלה
+              For full app functionality (YouTube connection, video cutting, file saving), connect to Supabase via the green button above
             </p>
           </div>
         </CardContent>
@@ -251,13 +251,13 @@ const Index = () => {
             <div className="flex items-center gap-3 text-center">
               <AlertCircle className="w-6 h-6 text-orange-500" />
               <div>
-                <p className="text-lg font-semibold">שימוש חינמי מוגבל</p>
+                <p className="text-lg font-semibold">Limited Free Usage</p>
                 <p className="text-sm text-muted-foreground">
-                  עד 2 דקות, איכות בסיסית, 3 ניסיונות ליום. לשימוש מלא - שדרגו למנוי
+                  Up to 2 minutes, basic quality, 3 attempts per day. For full usage - upgrade to subscription
                 </p>
                 <div className="flex gap-2 mt-2">
-                  <Badge variant="outline">ניסיונות: {3 - usageCount}/3</Badge>
-                  <Badge variant="outline">זמן מקסימלי: 2 דקות</Badge>
+                  <Badge variant="outline">Attempts: {3 - usageCount}/3</Badge>
+                  <Badge variant="outline">Max time: 2 minutes</Badge>
                 </div>
               </div>
             </div>
@@ -270,30 +270,30 @@ const Index = () => {
             <CardHeader>
               <CardTitle className="text-xl flex items-center gap-2">
                 <Upload className="w-8 h-8 text-primary" />
-                בחר קובץ
+                Choose File
               </CardTitle>
               <div className="flex gap-1 flex-wrap mt-2">
-                <Badge variant="outline" className="text-xs px-2 py-1">💳 בתשלום</Badge>
-                <Badge variant="outline" className="text-xs px-2 py-1">🎥 וידאו</Badge>
-                <Badge variant="outline" className="text-xs px-2 py-1">🎵 אודיו</Badge>
+                <Badge variant="outline" className="text-xs px-2 py-1">💳 Paid</Badge>
+                <Badge variant="outline" className="text-xs px-2 py-1">🎥 Video</Badge>
+                <Badge variant="outline" className="text-xs px-2 py-1">🎵 Audio</Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="border-2 border-dashed border-primary/30 rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
                 <Upload className="w-12 h-12 text-primary mx-auto mb-2" />
-                <p className="text-lg font-medium">גרור קבצים לכאן</p>
-                <p className="text-sm text-muted-foreground">או לחץ לבחירה</p>
+                <p className="text-lg font-medium">Drag files here</p>
+                <p className="text-sm text-muted-foreground">or click to select</p>
                 <p className="text-xs text-muted-foreground mt-2">MP4, MP3, WAV, MOV</p>
               </div>
               <Button size="lg" className="w-full text-lg bg-primary hover:bg-primary/90">
                 <Upload className="w-6 h-6 mr-2" />
-                בחר קבצים
+                Choose Files
               </Button>
               <div className="text-xs text-muted-foreground space-y-1">
-                <p>✨ תרגום אוטומטי</p>
-                <p>🎙️ דיבוב בקולות AI</p>
-                <p>✂️ חיתוך חכם</p>
-                <p>🏷️ זיהוי שירים ושמות</p>
+                <p>✨ Automatic Translation</p>
+                <p>🎙️ AI Voice Dubbing</p>
+                <p>✂️ Smart Cutting</p>
+                <p>🏷️ Song & Name Recognition</p>
               </div>
             </CardContent>
           </Card>
@@ -302,7 +302,7 @@ const Index = () => {
             <CardHeader>
               <CardTitle className="text-xl flex items-center gap-2">
                 <Link2 className="w-8 h-8 text-secondary" />
-                הדבק לינק ישיר
+                Paste Direct Link
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -315,7 +315,7 @@ const Index = () => {
               />
               <Button size="lg" className="w-full text-lg bg-secondary hover:bg-secondary/90">
                 <Upload className="w-6 h-6 mr-2" />
-                טען וידאו
+                Load Video
               </Button>
             </CardContent>
           </Card>
@@ -324,7 +324,7 @@ const Index = () => {
             <CardHeader>
               <CardTitle className="text-xl flex items-center gap-2">
                 <Music className="w-8 h-8 text-accent" />
-                שירותי סטרימינג
+                Streaming Services
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -335,7 +335,7 @@ const Index = () => {
                   onClick={() => setShowStreamingServices(!showStreamingServices)}
                 >
                   <Music className="w-6 h-6 mr-2" />
-                  התחבר לשירות
+                  Connect to Service
                   <ChevronDown className="w-4 h-4 ml-2" />
                 </Button>
                 {showStreamingServices && (
@@ -403,7 +403,7 @@ const Index = () => {
                   </div>
                 )}
               </div>
-              <p className="text-center text-muted-foreground text-sm">גש לתכנים מהפלטפורמות הפופולריות</p>
+              <p className="text-center text-muted-foreground text-sm">Access content from popular platforms</p>
             </CardContent>
           </Card>
         </div>
@@ -413,7 +413,7 @@ const Index = () => {
           <CardHeader>
             <CardTitle className="text-3xl flex items-center gap-3">
               <Video className="w-10 h-10 text-accent" />
-              נגן וחיתוך מתקדם
+              Advanced Player & Cutting
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-8">
@@ -424,11 +424,11 @@ const Index = () => {
               <div className="flex justify-center gap-4">
                 <Button variant="outline" size="sm" className="px-4 py-2">
                   <Volume2 className="w-4 h-4 mr-2" />
-                  דיבוב ▼
+                  Dubbing ▼
                 </Button>
                 <Button variant="outline" size="sm" className="px-4 py-2">
                   <FileText className="w-4 h-4 mr-2" />
-                  כתוביות ▼
+                  Subtitles ▼
                 </Button>
               </div>
               
@@ -436,11 +436,11 @@ const Index = () => {
               <div className="flex justify-center gap-4">
                 <Button variant="outline" size="sm" className="px-4 py-2">
                   <Video className="w-4 h-4 mr-2" />
-                  חיתוך וידאו
+                  Video Cutting
                 </Button>
                 <Button variant="outline" size="sm" className="px-4 py-2">
                   <Headphones className="w-4 h-4 mr-2" />
-                  חיתוך אודיו
+                  Audio Cutting
                 </Button>
               </div>
             </div>
@@ -450,8 +450,8 @@ const Index = () => {
               <div className="aspect-video bg-gradient-to-br from-muted to-background rounded-3xl border-2 border-dashed border-accent/30 flex items-center justify-center relative">
                 <div className="text-center">
                   <Video className={`${isMobile ? 'w-12 h-12' : 'w-20 h-20'} text-accent mx-auto mb-4`} />
-                  <p className={`${isMobile ? 'text-lg' : 'text-2xl'} text-accent font-semibold mb-2`}>תצוגה מקדימה</p>
-                  <p className={`${isMobile ? 'text-sm' : 'text-lg'} text-muted-foreground`}>הוידאו יופיע כאן לאחר הטעינה</p>
+                  <p className={`${isMobile ? 'text-lg' : 'text-2xl'} text-accent font-semibold mb-2`}>Preview</p>
+                  <p className={`${isMobile ? 'text-sm' : 'text-lg'} text-muted-foreground`}>The video will appear here after loading</p>
                 </div>
               </div>
               
@@ -472,11 +472,11 @@ const Index = () => {
                     <div className="flex items-center gap-4 mb-2">
                       <div className="flex items-center gap-2 text-sm">
                         <span className="w-3 h-3 bg-green-500 rounded-full"></span>
-                        <span>התחלה</span>
+                        <span>Start</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <span className="w-3 h-3 bg-red-500 rounded-full"></span>
-                        <span>סיום</span>
+                        <span>End</span>
                       </div>
                     </div>
                     
@@ -508,19 +508,19 @@ const Index = () => {
                 <div className="bg-background/50 rounded-lg p-3 border border-border/50">
                   <div className="grid grid-cols-3 gap-4 text-center">
                     <div>
-                      <p className="text-xs text-muted-foreground">התחלה</p>
+                      <p className="text-xs text-muted-foreground">Start</p>
                       <p className="font-mono text-sm font-semibold text-green-600">
                         {Math.floor(startTime[0] * 3.45 / 100 * 60).toString().padStart(2, '0')}:{Math.floor((startTime[0] * 3.45 / 100 % 1) * 60).toString().padStart(2, '0')}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">סיום</p>
+                      <p className="text-xs text-muted-foreground">End</p>
                       <p className="font-mono text-sm font-semibold text-red-600">
                         {Math.floor(endTime[0] * 3.45 / 100 * 60).toString().padStart(2, '0')}:{Math.floor((endTime[0] * 3.45 / 100 % 1) * 60).toString().padStart(2, '0')}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">אורך המקטע</p>
+                      <p className="text-xs text-muted-foreground">Segment Length</p>
                       <p className="font-mono text-sm font-semibold">
                         {Math.floor((endTime[0] - startTime[0]) * 3.45 / 100 * 60).toString().padStart(2, '0')}:{Math.floor(((endTime[0] - startTime[0]) * 3.45 / 100 % 1) * 60).toString().padStart(2, '0')}
                       </p>
@@ -543,7 +543,7 @@ const Index = () => {
                   className={`${isMobile ? 'text-base px-4' : 'text-lg px-6'} bg-primary hover:bg-primary/90`}
                 >
                   {isPlaying ? <Pause className={`${isMobile ? 'w-5 h-5' : 'w-5 h-5'} mr-1 md:mr-2`} /> : <Play className={`${isMobile ? 'w-5 h-5' : 'w-5 h-5'} mr-1 md:mr-2`} />}
-                  {isPlaying ? 'עצור' : 'נגן'}
+                  {isPlaying ? 'Stop' : 'Play'}
                 </Button>
                 <Button variant="outline" size={isMobile ? "default" : "lg"} className={`${isMobile ? 'text-sm px-3' : 'text-lg px-6'}`}>
                   <SkipForward className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1 md:mr-2`} />
@@ -555,15 +555,15 @@ const Index = () => {
               <div className={`flex justify-between items-center gap-2 mb-4 ${isMobile ? 'max-w-xs' : 'max-w-2xl'} mx-auto`}>
                 <Button variant="outline" size={isMobile ? "sm" : "lg"} className={`rounded-full ${isMobile ? 'px-3 py-2 text-sm' : 'px-8 py-3'}`}>
                   <ChevronLeft className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1`} />
-                  התחלה
+                  Start
                 </Button>
                 <Button className={`bg-accent hover:bg-accent/90 rounded-full ${isMobile ? 'px-4 py-2 text-sm' : 'px-8 py-3'}`} size={isMobile ? "sm" : "lg"}>
                   <Scissors className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1`} />
-                  חתוך
+                  Cut
                 </Button>
                 <Button variant="outline" size={isMobile ? "sm" : "lg"} className={`rounded-full ${isMobile ? 'px-3 py-2 text-sm' : 'px-8 py-3'}`}>
                   <ChevronRight className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1`} />
-                  סיום
+                  End
                 </Button>
               </div>
 
@@ -582,15 +582,15 @@ const Index = () => {
           <CardHeader>
             <CardTitle className="text-3xl flex items-center gap-3">
               <Layers3 className="w-10 h-10 text-secondary" />
-              מקטעים נחתכו
+              Cut Segments
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {segments.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Scissors className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <p className={`${isMobile ? 'text-lg' : 'text-xl'}`}>עדיין לא נחתכו מקטעים</p>
-                <p className={`${isMobile ? 'text-sm' : 'text-base'}`}>התחל לחתוך כדי לראות את המקטעים כאן</p>
+                <p className={`${isMobile ? 'text-lg' : 'text-xl'}`}>No segments cut yet</p>
+                <p className={`${isMobile ? 'text-sm' : 'text-base'}`}>Start cutting to see segments here</p>
               </div>
             ) : (
               <DndContext 
@@ -620,12 +620,12 @@ const Index = () => {
             <CardHeader>
               <CardTitle className="text-3xl flex items-center gap-3">
                 <Headphones className="w-10 h-10 text-accent" />
-                הגדרות איכות
+                Quality Settings
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-3">
-                <label className={`${isMobile ? 'text-base' : 'text-lg'} font-medium`}>פורמט אודיו</label>
+                <label className={`${isMobile ? 'text-base' : 'text-lg'} font-medium`}>Audio Format</label>
                 <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-3'} gap-2`}>
                   <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>MP3</Button>
                   <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>WAV</Button>
@@ -636,7 +636,7 @@ const Index = () => {
                 </div>
               </div>
               <div className="space-y-3">
-                <label className={`${isMobile ? 'text-base' : 'text-lg'} font-medium`}>איכות אודיו</label>
+                <label className={`${isMobile ? 'text-base' : 'text-lg'} font-medium`}>Audio Quality</label>
                 <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-3'} gap-2`}>
                   <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>96k</Button>
                   <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>128k</Button>
@@ -647,7 +647,7 @@ const Index = () => {
                 </div>
               </div>
               <div className="space-y-3">
-                <label className={`${isMobile ? 'text-base' : 'text-lg'} font-medium`}>רזולוציית וידאו</label>
+                <label className={`${isMobile ? 'text-base' : 'text-lg'} font-medium`}>Video Resolution</label>
                 <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-3'} gap-2`}>
                   <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>480p</Button>
                   <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>720p</Button>
@@ -664,7 +664,7 @@ const Index = () => {
             <CardHeader>
               <CardTitle className="text-3xl flex items-center gap-3">
                 <Download className="w-10 h-10 text-primary" />
-                אפשרויות הורדה
+                Download Options
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -673,7 +673,7 @@ const Index = () => {
               <div className="bg-gradient-to-r from-accent/5 to-primary/5 p-4 rounded-lg border border-accent/20">
                 <h4 className={`${isMobile ? 'text-lg' : 'text-xl'} font-semibold mb-4 flex items-center gap-2`}>
                   <Palette className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-accent`} />
-                  הגדרות מיקס
+                  Mix Settings
                 </h4>
                 
                 <div className="grid md:grid-cols-2 gap-4">
@@ -709,31 +709,31 @@ const Index = () => {
 
               <Button size={isMobile ? "default" : "lg"} className={`w-full ${isMobile ? 'text-lg py-3' : 'text-xl py-4'} bg-primary hover:bg-primary/90`}>
                 <Download className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} mr-2`} />
-                הורד את כל המקטעים
+                Download All Segments
               </Button>
               <Button variant="outline" size={isMobile ? "default" : "lg"} className={`w-full ${isMobile ? 'text-base' : 'text-lg'}`}>
                 <Save className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} mr-2`} />
-                הורד מקטעים נבחרים
+                Download Selected Segments
               </Button>
               <Button variant="outline" size={isMobile ? "default" : "lg"} className={`w-full ${isMobile ? 'text-base' : 'text-lg'}`}>
                 <Layers3 className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} mr-2`} />
-                איחוד מקטעים עם מיקס
+                Merge Segments with Mix
               </Button>
               
               {/* הורדת כתוביות ודיבוב בנפרד */}
               <div className="border-t pt-4">
-                <p className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold mb-3 text-center`}>הורדות נפרדות</p>
+                <p className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold mb-3 text-center`}>Separate Downloads</p>
                 <Button variant="outline" size={isMobile ? "default" : "lg"} className={`w-full ${isMobile ? 'text-sm' : 'text-lg'} mb-2`}>
                   <FileText className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} mr-2`} />
-                  הורד רק כתוביות (.srt)
+                  Download Subtitles Only (.srt)
                 </Button>
                 <Button variant="outline" size={isMobile ? "default" : "lg"} className={`w-full ${isMobile ? 'text-sm' : 'text-lg'} mb-2`}>
                   <Volume2 className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} mr-2`} />
-                  הורד רק דיבוב (.mp3)
+                  Download Audio Only (.mp3)
                 </Button>
                 <Button variant="outline" size={isMobile ? "default" : "lg"} className={`w-full ${isMobile ? 'text-sm' : 'text-lg'}`}>
                   <Video className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} mr-2`} />
-                  הורד וידאו מתורגם
+                  Download Translated Video
                 </Button>
               </div>
             </CardContent>
@@ -744,10 +744,10 @@ const Index = () => {
         <Card className="bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 border-primary/20">
           <CardContent className="p-8">
             <h3 className="text-4xl font-bold mb-2 text-center bg-gradient-primary bg-clip-text text-transparent">
-              בחר את החבילה שלך
+              Choose Your Plan
             </h3>
             <p className="text-center text-muted-foreground mb-8 text-lg">
-              מכל רמה של שימוש - יש לנו פתרון מושלם בשבילך
+              For every level of usage - we have the perfect solution for you
             </p>
             
             <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
@@ -757,9 +757,9 @@ const Index = () => {
                   <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
                     <Music className="w-8 h-8" />
                   </div>
-                  <h4 className="text-2xl font-bold">בסיסי</h4>
-                  <div className="text-4xl font-bold">חינם</div>
-                  <p className="text-muted-foreground">מושלם להתחלה</p>
+                  <h4 className="text-2xl font-bold">Basic</h4>
+                  <div className="text-4xl font-bold">Free</div>
+                  <p className="text-muted-foreground">Perfect for starters</p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-3">
@@ -781,7 +781,7 @@ const Index = () => {
                     </div>
                   </div>
                   <Button className="w-full mt-6" variant="outline">
-                    התחל חינם
+                    Start Free
                   </Button>
                 </CardContent>
               </Card>
@@ -791,42 +791,42 @@ const Index = () => {
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                   <Badge className="bg-primary text-primary-foreground px-4 py-1">
                     <Star className="w-3 h-3 mr-1" />
-                    הכי פופולרי
+                    Most Popular
                   </Badge>
                 </div>
                 <CardHeader className="text-center pb-4">
                   <div className="mx-auto w-16 h-16 bg-primary rounded-full flex items-center justify-center mb-4">
                     <Crown className="w-8 h-8 text-primary-foreground" />
                   </div>
-                  <h4 className="text-2xl font-bold">פרו</h4>
-                  <div className="text-4xl font-bold">₪29<span className="text-lg text-muted-foreground">/חודש</span></div>
-                  <p className="text-muted-foreground">ליוצרי תוכן</p>
+                  <h4 className="text-2xl font-bold">Pro</h4>
+                  <div className="text-4xl font-bold">$9<span className="text-lg text-muted-foreground">/month</span></div>
+                  <p className="text-muted-foreground">For content creators</p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-green-500" />
-                      <span className="text-sm">ללא הגבלת זמן</span>
+                      <span className="text-sm">Unlimited time</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-green-500" />
-                      <span className="text-sm">עד 100 קליפים ביום</span>
+                      <span className="text-sm">Up to 100 clips per day</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-green-500" />
-                      <span className="text-sm">איכות 4K</span>
+                      <span className="text-sm">4K Quality</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-green-500" />
-                      <span className="text-sm">חיתוכים מרובים</span>
+                      <span className="text-sm">Multiple cuts</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-green-500" />
-                      <span className="text-sm">תמיכה בעדיפות</span>
+                      <span className="text-sm">Priority support</span>
                     </div>
                   </div>
                   <Button className="w-full mt-6 bg-primary hover:bg-primary/90">
-                    התחל ניסיון 7 ימים
+                    Start 7-day Trial
                   </Button>
                 </CardContent>
               </Card>
@@ -837,35 +837,35 @@ const Index = () => {
                   <div className="mx-auto w-16 h-16 bg-accent rounded-full flex items-center justify-center mb-4">
                     <Sparkles className="w-8 h-8 text-accent-foreground" />
                   </div>
-                  <h4 className="text-2xl font-bold">פרמיום</h4>
-                  <div className="text-4xl font-bold">₪79<span className="text-lg text-muted-foreground">/חודש</span></div>
-                  <p className="text-muted-foreground">לעסקים וסטודיו</p>
+                  <h4 className="text-2xl font-bold">Premium</h4>
+                  <div className="text-4xl font-bold">$29<span className="text-lg text-muted-foreground">/month</span></div>
+                  <p className="text-muted-foreground">For businesses & studios</p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-green-500" />
-                      <span className="text-sm">כל התכונות של פרו</span>
+                      <span className="text-sm">All Pro features</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-green-500" />
-                      <span className="text-sm">ללא הגבלת קליפים</span>
+                      <span className="text-sm">Unlimited clips</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-green-500" />
-                      <span className="text-sm">איכות 8K</span>
+                      <span className="text-sm">8K Quality</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-green-500" />
-                      <span className="text-sm">API גישה</span>
+                      <span className="text-sm">API Access</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-green-500" />
-                      <span className="text-sm">תמיכה 24/7</span>
+                      <span className="text-sm">24/7 Support</span>
                     </div>
                   </div>
                   <Button className="w-full mt-6 bg-accent hover:bg-accent/90">
-                    צור קשר למכירות
+                    Contact Sales
                   </Button>
                 </CardContent>
               </Card>
@@ -874,7 +874,7 @@ const Index = () => {
             {/* הערה על התשלום */}
             <div className="text-center mt-8 p-4 bg-muted/20 rounded-lg">
               <p className="text-sm text-muted-foreground">
-                לביטול בכל עת • החזר מלא תוך 30 יום • תשלום מאובטח
+                Cancel anytime • Full refund within 30 days • Secure payment
               </p>
             </div>
           </CardContent>
@@ -884,38 +884,38 @@ const Index = () => {
         <Card className="bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 border-primary/20">
           <CardContent className="p-8">
             <h3 className="text-3xl font-bold mb-6 text-center bg-gradient-primary bg-clip-text text-transparent">
-              התכונות המתקדמות שלנו
+              Our Advanced Features
             </h3>
             <div className="grid md:grid-cols-3 gap-6 text-lg">
               <div className="text-center p-4 bg-background/50 rounded-lg">
                 <Scissors className="w-12 h-12 text-primary mx-auto mb-2" />
-                <div className="font-semibold">חיתוך מדויק</div>
-                <div className="text-muted-foreground">חיתוך במדויקות שניות</div>
+                <div className="font-semibold">Precise Cutting</div>
+                <div className="text-muted-foreground">Cut with second precision</div>
               </div>
               <div className="text-center p-4 bg-background/50 rounded-lg">
                 <Music className="w-12 h-12 text-secondary mx-auto mb-2" />
-                <div className="font-semibold">זיהוי שירים</div>
-                <div className="text-muted-foreground">זיהוי אוטומטי של שמות</div>
+                <div className="font-semibold">Song Recognition</div>
+                <div className="text-muted-foreground">Automatic name detection</div>
               </div>
               <div className="text-center p-4 bg-background/50 rounded-lg">
                 <Headphones className="w-12 h-12 text-accent mx-auto mb-2" />
-                <div className="font-semibold">איכות HD</div>
-                <div className="text-muted-foreground">קידוד איכותי ברזולוציה גבוהה</div>
+                <div className="font-semibold">HD Quality</div>
+                <div className="text-muted-foreground">Quality encoding at high resolution</div>
               </div>
               <div className="text-center p-4 bg-background/50 rounded-lg">
                 <Video className="w-12 h-12 text-primary mx-auto mb-2" />
-                <div className="font-semibold">מיקס מתקדם</div>
-                <div className="text-muted-foreground">מעברים חלקים בין מקטעים</div>
+                <div className="font-semibold">Advanced Mixing</div>
+                <div className="text-muted-foreground">Smooth transitions between segments</div>
               </div>
               <div className="text-center p-4 bg-background/50 rounded-lg">
                 <FileText className="w-12 h-12 text-secondary mx-auto mb-2" />
-                <div className="font-semibold">כתוביות</div>
-                <div className="text-muted-foreground">תרגום וכתוביות אוטומטיות</div>
+                <div className="font-semibold">Subtitles</div>
+                <div className="text-muted-foreground">Automatic translation and subtitles</div>
               </div>
               <div className="text-center p-4 bg-background/50 rounded-lg">
                 <Crown className="w-12 h-12 text-accent mx-auto mb-2" />
-                <div className="font-semibold">פלטפורמות מרובות</div>
-                <div className="text-muted-foreground">תמיכה בכל שירותי הסטרימינג</div>
+                <div className="font-semibold">Multiple Platforms</div>
+                <div className="text-muted-foreground">Support for all streaming services</div>
               </div>
             </div>
           </CardContent>
