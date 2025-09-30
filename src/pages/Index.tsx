@@ -144,7 +144,6 @@ const Index = () => {
   const [fadeInDuration, setFadeInDuration] = useState([2]);
   const [fadeOutDuration, setFadeOutDuration] = useState([2]);
   const [projectName, setProjectName] = useState("YouTube Cutter Project");
-  const [isEditingName, setIsEditingName] = useState(false);
   const [startTime, setStartTime] = useState([0]);
   const [endTime, setEndTime] = useState([100]);
   const [showStreamingServices, setShowStreamingServices] = useState(false);
@@ -190,35 +189,9 @@ const Index = () => {
           <div className="p-3 bg-gradient-primary rounded-full shadow-glow">
             <Music className="w-10 h-10 text-primary-foreground" />
           </div>
-          <div className="flex flex-col items-center gap-2">
-            {isEditingName ? (
-              <div className="flex items-center gap-2">
-                <Input
-                  value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
-                  className="text-2xl md:text-4xl font-bold text-center"
-                  onKeyPress={(e) => e.key === 'Enter' && setIsEditingName(false)}
-                />
-                <Button size="sm" onClick={() => setIsEditingName(false)}>
-                  <Save className="w-4 h-4" />
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl md:text-7xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                  {projectName}
-                </h1>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setIsEditingName(true)}
-                  className="opacity-70 hover:opacity-100"
-                >
-                  <Edit3 className="w-4 h-4" />
-                </Button>
-              </div>
-            )}
-          </div>
+          <h1 className="text-2xl md:text-7xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+            {projectName}
+          </h1>
         </div>
         <p className="text-xl md:text-2xl text-muted-foreground mb-6">
           Cut and edit YouTube videos easily - no cost
