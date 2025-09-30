@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -150,6 +151,7 @@ const Index = () => {
   const [usageCount, setUsageCount] = useState(0);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
 
   const sensors = useSensors(
@@ -215,6 +217,16 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background p-4">
       
+      {/* כפתור התחברות */}
+      <div className="flex justify-end mb-4">
+        <Button
+          onClick={() => navigate("/auth")}
+          className="bg-primary hover:bg-primary/90"
+        >
+          Sign In / Sign Up
+        </Button>
+      </div>
+
       {/* כותרת ראשית עם גרדיאנט */}
       <div className="text-center mb-8">
         <div className="flex items-center justify-center gap-4 mb-6">
