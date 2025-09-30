@@ -147,7 +147,9 @@ const Index = () => {
   const [startTime, setStartTime] = useState([0]);
   const [endTime, setEndTime] = useState([100]);
   const [showStreamingServices, setShowStreamingServices] = useState(false);
-  const [usageCount, setUsageCount] = useState(0); // מספר השימושים של המשתמש
+  const [usageCount, setUsageCount] = useState(0);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
   const isMobile = useIsMobile();
 
   const sensors = useSensors(
@@ -178,6 +180,36 @@ const Index = () => {
 
   const handlePlaySegment = (id: number) => {
     console.log(`Playing segment ${id}`);
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files) {
+      const newFiles = Array.from(files);
+      setUploadedFiles(prev => [...prev, ...newFiles]);
+      console.log('Files uploaded:', newFiles.map(f => f.name));
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files) {
+      const newFiles = Array.from(files);
+      setUploadedFiles(prev => [...prev, ...newFiles]);
+      console.log('Files dropped:', newFiles.map(f => f.name));
+    }
   };
 
   return (
@@ -252,16 +284,46 @@ const Index = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="border-2 border-dashed border-primary/30 rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
+              <input
+                type="file"
+                id="file-upload"
+                className="hidden"
+                accept="video/*,audio/*,.mp4,.mov,.avi,.mkv,.webm,.flv,.wmv,.m4v,.mp3,.wav,.aac,.flac,.ogg,.m4a,.wma"
+                multiple
+                onChange={handleFileSelect}
+              />
+              <label
+                htmlFor="file-upload"
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`block border-2 border-dashed rounded-lg p-6 text-center transition-all cursor-pointer ${
+                  isDragging 
+                    ? 'border-primary bg-primary/10 scale-105' 
+                    : 'border-primary/30 hover:border-primary/50'
+                }`}
+              >
                 <Upload className="w-12 h-12 text-primary mx-auto mb-2" />
                 <p className="text-lg font-medium">Drag files here</p>
                 <p className="text-sm text-muted-foreground">or click to select</p>
-                <p className="text-xs text-muted-foreground mt-2">MP4, MP3, WAV, MOV</p>
-              </div>
-              <Button size="lg" className="w-full text-lg bg-primary hover:bg-primary/90">
+                <p className="text-xs text-muted-foreground mt-2">All video & audio formats supported</p>
+              </label>
+              <Button size="lg" className="w-full text-lg bg-primary hover:bg-primary/90" onClick={() => document.getElementById('file-upload')?.click()}>
                 <Upload className="w-6 h-6 mr-2" />
                 Choose Files
               </Button>
+              {uploadedFiles.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  <p className="text-sm font-semibold">Uploaded Files ({uploadedFiles.length}):</p>
+                  {uploadedFiles.map((file, idx) => (
+                    <div key={idx} className="text-xs p-2 bg-primary/10 rounded flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      <span className="flex-1 truncate">{file.name}</span>
+                      <span className="text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="text-xs text-muted-foreground space-y-1">
                 <p>✨ Automatic Translation</p>
                 <p>🎙️ AI Voice Dubbing</p>
