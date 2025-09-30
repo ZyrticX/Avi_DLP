@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -151,6 +151,10 @@ const Index = () => {
   const [usageCount, setUsageCount] = useState(0);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [videoId, setVideoId] = useState("");
+  const [player, setPlayer] = useState<any>(null);
+  const [videoDuration, setVideoDuration] = useState(100);
+  const playerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
@@ -160,6 +164,97 @@ const Index = () => {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  // Load YouTube IFrame API
+  useEffect(() => {
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+
+    (window as any).onYouTubeIframeAPIReady = () => {
+      console.log('YouTube IFrame API ready');
+    };
+  }, []);
+
+  // Update current time from player
+  useEffect(() => {
+    if (!player) return;
+
+    const interval = setInterval(() => {
+      if (player && player.getCurrentTime) {
+        const time = player.getCurrentTime();
+        setCurrentTime([time]);
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [player]);
+
+  const extractVideoId = (url: string): string | null => {
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/,
+      /youtube\.com\/embed\/([^&\n?#]+)/,
+    ];
+
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+    return null;
+  };
+
+  const loadVideo = () => {
+    const id = extractVideoId(youtubeUrl);
+    if (!id) {
+      alert('Invalid YouTube URL');
+      return;
+    }
+
+    setVideoId(id);
+
+    if (player) {
+      player.loadVideoById(id);
+    } else {
+      const newPlayer = new (window as any).YT.Player(playerRef.current, {
+        height: '100%',
+        width: '100%',
+        videoId: id,
+        playerVars: {
+          controls: 1,
+          modestbranding: 1,
+        },
+        events: {
+          onReady: (event: any) => {
+            setPlayer(event.target);
+            const duration = event.target.getDuration();
+            setVideoDuration(duration);
+            setEndTime([duration]);
+          },
+          onStateChange: (event: any) => {
+            setIsPlaying(event.data === 1);
+          },
+        },
+      });
+    }
+  };
+
+  const togglePlayPause = () => {
+    if (!player) return;
+    if (isPlaying) {
+      player.pauseVideo();
+    } else {
+      player.playVideo();
+    }
+  };
+
+  const seekTo = (time: number) => {
+    if (player && player.seekTo) {
+      player.seekTo(time, true);
+    }
+  };
 
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
@@ -181,7 +276,30 @@ const Index = () => {
   };
 
   const handlePlaySegment = (id: number) => {
-    console.log(`Playing segment ${id}`);
+    const segment = segments.find(s => s.id === id);
+    if (segment && player) {
+      seekTo(segment.start);
+      player.playVideo();
+    }
+  };
+
+  const addSegment = () => {
+    const start = startTime[0];
+    const end = endTime[0];
+    
+    if (start >= end) {
+      alert('Start time must be before end time');
+      return;
+    }
+
+    const newSegment = {
+      id: Date.now(),
+      start,
+      end,
+      title: `Segment ${segments.length + 1}`,
+    };
+
+    setSegments([...segments, newSegment]);
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -360,7 +478,12 @@ const Index = () => {
                 className="text-lg p-4 border-secondary/30"
                 dir="ltr"
               />
-              <Button size="lg" className="w-full text-lg bg-secondary hover:bg-secondary/90">
+              <Button 
+                size="lg" 
+                className="w-full text-lg bg-secondary hover:bg-secondary/90"
+                onClick={loadVideo}
+                disabled={!youtubeUrl}
+              >
                 <Upload className="w-6 h-6 mr-2" />
                 Load Video
               </Button>
@@ -492,14 +615,20 @@ const Index = () => {
               </div>
             </div>
 
-            {/* תצוגה מקדימה - מתאימה למובייל */}
+            {/* תצוגה מקדימה - נגן YouTube */}
             <div className={`w-full ${isMobile ? 'max-w-sm' : 'max-w-4xl'} mx-auto mb-8`}>
-              <div className="aspect-video bg-gradient-to-br from-muted to-background rounded-3xl border-2 border-dashed border-accent/30 flex items-center justify-center relative">
-                <div className="text-center">
-                  <Video className={`${isMobile ? 'w-12 h-12' : 'w-20 h-20'} text-accent mx-auto mb-4`} />
-                  <p className={`${isMobile ? 'text-lg' : 'text-2xl'} text-accent font-semibold mb-2`}>Preview</p>
-                  <p className={`${isMobile ? 'text-sm' : 'text-lg'} text-muted-foreground`}>The video will appear here after loading</p>
-                </div>
+              <div className="aspect-video bg-gradient-to-br from-muted to-background rounded-3xl border-2 border-accent/30 overflow-hidden relative">
+                {videoId ? (
+                  <div ref={playerRef} className="w-full h-full"></div>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <div className="text-center">
+                      <Video className={`${isMobile ? 'w-12 h-12' : 'w-20 h-20'} text-accent mx-auto mb-4`} />
+                      <p className={`${isMobile ? 'text-lg' : 'text-2xl'} text-accent font-semibold mb-2`}>Preview</p>
+                      <p className={`${isMobile ? 'text-sm' : 'text-lg'} text-muted-foreground`}>The video will appear here after loading</p>
+                    </div>
+                  </div>
+                )}
               </div>
               
               {/* ציר זמן מתקדם עם סמני חיתוך */}
@@ -508,8 +637,11 @@ const Index = () => {
                   {/* ציר הזמן הראשי */}
                   <Slider
                     value={currentTime}
-                    onValueChange={setCurrentTime}
-                    max={100}
+                    onValueChange={(val) => {
+                      setCurrentTime(val);
+                      seekTo(val[0]);
+                    }}
+                    max={videoDuration}
                     step={0.1}
                     className="w-full [&_.slider-thumb]:w-6 [&_.slider-thumb]:h-6 [&_.slider-thumb]:bg-primary"
                   />
@@ -532,7 +664,7 @@ const Index = () => {
                       <Slider
                         value={startTime}
                         onValueChange={setStartTime}
-                        max={100}
+                        max={videoDuration}
                         step={0.1}
                         className="w-full [&_.slider-thumb]:w-4 [&_.slider-thumb]:h-4 [&_.slider-thumb]:bg-green-500"
                       />
@@ -543,7 +675,7 @@ const Index = () => {
                       <Slider
                         value={endTime}
                         onValueChange={setEndTime}
-                        max={100}
+                        max={videoDuration}
                         step={0.1}
                         className="w-full [&_.slider-thumb]:w-4 [&_.slider-thumb]:h-4 [&_.slider-thumb]:bg-red-500"
                       />
@@ -557,19 +689,19 @@ const Index = () => {
                     <div>
                       <p className="text-xs text-muted-foreground">Start</p>
                       <p className="font-mono text-sm font-semibold text-green-600">
-                        {Math.floor(startTime[0] * 3.45 / 100 * 60).toString().padStart(2, '0')}:{Math.floor((startTime[0] * 3.45 / 100 % 1) * 60).toString().padStart(2, '0')}
+                        {Math.floor(startTime[0] / 60).toString().padStart(2, '0')}:{Math.floor(startTime[0] % 60).toString().padStart(2, '0')}
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">End</p>
                       <p className="font-mono text-sm font-semibold text-red-600">
-                        {Math.floor(endTime[0] * 3.45 / 100 * 60).toString().padStart(2, '0')}:{Math.floor((endTime[0] * 3.45 / 100 % 1) * 60).toString().padStart(2, '0')}
+                        {Math.floor(endTime[0] / 60).toString().padStart(2, '0')}:{Math.floor(endTime[0] % 60).toString().padStart(2, '0')}
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Segment Length</p>
                       <p className="font-mono text-sm font-semibold">
-                        {Math.floor((endTime[0] - startTime[0]) * 3.45 / 100 * 60).toString().padStart(2, '0')}:{Math.floor(((endTime[0] - startTime[0]) * 3.45 / 100 % 1) * 60).toString().padStart(2, '0')}
+                        {Math.floor((endTime[0] - startTime[0]) / 60).toString().padStart(2, '0')}:{Math.floor((endTime[0] - startTime[0]) % 60).toString().padStart(2, '0')}
                       </p>
                     </div>
                   </div>
@@ -580,19 +712,32 @@ const Index = () => {
             {/* בקרות נגן */}
             <div className="bg-gradient-to-r from-primary/5 to-secondary/5 p-3 md:p-6 rounded-xl">
               <div className={`flex justify-center gap-2 md:gap-4 mb-4 md:mb-6 ${isMobile ? 'flex-wrap' : ''}`}>
-                <Button variant="outline" size={isMobile ? "default" : "lg"} className={`${isMobile ? 'text-sm px-3' : 'text-lg px-6'}`}>
+                <Button 
+                  variant="outline" 
+                  size={isMobile ? "default" : "lg"} 
+                  className={`${isMobile ? 'text-sm px-3' : 'text-lg px-6'}`}
+                  onClick={() => seekTo(Math.max(0, currentTime[0] - 10))}
+                  disabled={!player}
+                >
                   <SkipBack className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1 md:mr-2`} />
                   -10s
                 </Button>
                 <Button 
                   size={isMobile ? "default" : "default"}
-                  onClick={() => setIsPlaying(!isPlaying)}
+                  onClick={togglePlayPause}
                   className={`${isMobile ? 'text-base px-4' : 'text-lg px-6'} bg-primary hover:bg-primary/90`}
+                  disabled={!player}
                 >
                   {isPlaying ? <Pause className={`${isMobile ? 'w-5 h-5' : 'w-5 h-5'} mr-1 md:mr-2`} /> : <Play className={`${isMobile ? 'w-5 h-5' : 'w-5 h-5'} mr-1 md:mr-2`} />}
                   {isPlaying ? 'Stop' : 'Play'}
                 </Button>
-                <Button variant="outline" size={isMobile ? "default" : "lg"} className={`${isMobile ? 'text-sm px-3' : 'text-lg px-6'}`}>
+                <Button 
+                  variant="outline" 
+                  size={isMobile ? "default" : "lg"} 
+                  className={`${isMobile ? 'text-sm px-3' : 'text-lg px-6'}`}
+                  onClick={() => seekTo(Math.min(videoDuration, currentTime[0] + 10))}
+                  disabled={!player}
+                >
                   <SkipForward className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1 md:mr-2`} />
                   +10s
                 </Button>
@@ -600,15 +745,32 @@ const Index = () => {
               
               {/* כפתורי חיתוך בשורה אחת - מותאם למובייל */}
               <div className={`flex justify-between items-center gap-2 mb-4 ${isMobile ? 'max-w-xs' : 'max-w-2xl'} mx-auto`}>
-                <Button variant="outline" size={isMobile ? "sm" : "lg"} className={`rounded-full ${isMobile ? 'px-3 py-2 text-sm' : 'px-8 py-3'}`}>
+                <Button 
+                  variant="outline" 
+                  size={isMobile ? "sm" : "lg"} 
+                  className={`rounded-full ${isMobile ? 'px-3 py-2 text-sm' : 'px-8 py-3'}`}
+                  onClick={() => setStartTime([currentTime[0]])}
+                  disabled={!player}
+                >
                   <ChevronLeft className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1`} />
                   Start
                 </Button>
-                <Button className={`bg-accent hover:bg-accent/90 rounded-full ${isMobile ? 'px-4 py-2 text-sm' : 'px-8 py-3'}`} size={isMobile ? "sm" : "lg"}>
+                <Button 
+                  className={`bg-accent hover:bg-accent/90 rounded-full ${isMobile ? 'px-4 py-2 text-sm' : 'px-8 py-3'}`} 
+                  size={isMobile ? "sm" : "lg"}
+                  onClick={addSegment}
+                  disabled={!player}
+                >
                   <Scissors className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1`} />
                   Cut
                 </Button>
-                <Button variant="outline" size={isMobile ? "sm" : "lg"} className={`rounded-full ${isMobile ? 'px-3 py-2 text-sm' : 'px-8 py-3'}`}>
+                <Button 
+                  variant="outline" 
+                  size={isMobile ? "sm" : "lg"} 
+                  className={`rounded-full ${isMobile ? 'px-3 py-2 text-sm' : 'px-8 py-3'}`}
+                  onClick={() => setEndTime([currentTime[0]])}
+                  disabled={!player}
+                >
                   <ChevronRight className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1`} />
                   End
                 </Button>
