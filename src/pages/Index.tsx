@@ -165,6 +165,8 @@ const Index = () => {
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [connectedPlatforms, setConnectedPlatforms] = useState<Record<string, ConnectedPlatform>>({});
   const [showPlatformDialog, setShowPlatformDialog] = useState(false);
+  const [cuttingMode, setCuttingMode] = useState<"video" | "audio" | null>(null);
+  const [showCuttingOptions, setShowCuttingOptions] = useState(false);
   const playerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -747,16 +749,114 @@ const Index = () => {
               </div>
               
               {/* שורה שנייה: חיתוך וידאו ואודיו */}
-              <div className="flex justify-center gap-4">
-                <Button variant="outline" size="sm" className="px-4 py-2">
+              <div className="flex justify-center gap-4 relative">
+                <Button 
+                  variant={cuttingMode === "video" ? "default" : "outline"} 
+                  size="sm" 
+                  className="px-4 py-2"
+                  onClick={() => {
+                    setCuttingMode("video");
+                    setShowCuttingOptions(true);
+                  }}
+                >
                   <Video className="w-4 h-4 mr-2" />
                   Video Cutting
                 </Button>
-                <Button variant="outline" size="sm" className="px-4 py-2">
+                <Button 
+                  variant={cuttingMode === "audio" ? "default" : "outline"} 
+                  size="sm" 
+                  className="px-4 py-2"
+                  onClick={() => {
+                    setCuttingMode("audio");
+                    setShowCuttingOptions(true);
+                  }}
+                >
                   <Headphones className="w-4 h-4 mr-2" />
                   Audio Cutting
                 </Button>
               </div>
+
+              {/* אופציות חיתוך */}
+              {showCuttingOptions && cuttingMode && (
+                <Card className="p-4 bg-background/95 border-primary/30">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      {cuttingMode === "video" ? (
+                        <>
+                          <Video className="w-4 h-4 text-primary" />
+                          Video Cutting Options
+                        </>
+                      ) : (
+                        <>
+                          <Headphones className="w-4 h-4 text-primary" />
+                          Audio Cutting Options
+                        </>
+                      )}
+                    </h4>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setShowCuttingOptions(false)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  
+                  {cuttingMode === "video" ? (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button variant="outline" size="sm" className="text-xs">
+                          <Video className="w-3 h-3 mr-1" />
+                          Crop Video
+                        </Button>
+                        <Button variant="outline" size="sm" className="text-xs">
+                          <Scissors className="w-3 h-3 mr-1" />
+                          Trim
+                        </Button>
+                        <Button variant="outline" size="sm" className="text-xs">
+                          <Sparkles className="w-3 h-3 mr-1" />
+                          Effects
+                        </Button>
+                        <Button variant="outline" size="sm" className="text-xs">
+                          <Settings className="w-3 h-3 mr-1" />
+                          Quality
+                        </Button>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        <p>• Precise frame-by-frame cutting</p>
+                        <p>• Multiple resolution options</p>
+                        <p>• Video effects and filters</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button variant="outline" size="sm" className="text-xs">
+                          <Headphones className="w-3 h-3 mr-1" />
+                          Extract Audio
+                        </Button>
+                        <Button variant="outline" size="sm" className="text-xs">
+                          <Volume2 className="w-3 h-3 mr-1" />
+                          Normalize
+                        </Button>
+                        <Button variant="outline" size="sm" className="text-xs">
+                          <Music className="w-3 h-3 mr-1" />
+                          Remove Vocals
+                        </Button>
+                        <Button variant="outline" size="sm" className="text-xs">
+                          <Settings className="w-3 h-3 mr-1" />
+                          Audio Quality
+                        </Button>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        <p>• High-quality audio extraction</p>
+                        <p>• Noise reduction</p>
+                        <p>• Audio normalization</p>
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              )}
             </div>
 
             {/* תצוגה מקדימה - נגן YouTube */}
