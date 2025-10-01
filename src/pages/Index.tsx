@@ -1277,19 +1277,19 @@ const Index = () => {
       </div>
 
       {/* Dialog להצגת תוכן פלטפורמה */}
-      <Dialog open={showPlatformDialog} onOpenChange={setShowPlatformDialog}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl flex items-center gap-3">
-              <span className="text-3xl">{selectedPlatform && connectedPlatforms[selectedPlatform]?.icon}</span>
-              {selectedPlatform} Content
-            </DialogTitle>
-            <DialogDescription>
-              Your personalized favorites and playlists from {selectedPlatform}
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedPlatform && connectedPlatforms[selectedPlatform] && (
+      {showPlatformDialog && selectedPlatform && connectedPlatforms[selectedPlatform] && (
+        <Dialog open={showPlatformDialog} onOpenChange={setShowPlatformDialog}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-2xl flex items-center gap-3">
+                <span className="text-3xl">{connectedPlatforms[selectedPlatform]?.icon}</span>
+                {selectedPlatform} Content
+              </DialogTitle>
+              <DialogDescription>
+                Your personalized favorites and playlists from {selectedPlatform}
+              </DialogDescription>
+            </DialogHeader>
+            
             <div className="space-y-6 mt-4">
               <div className="space-y-3">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -1303,8 +1303,8 @@ const Index = () => {
                       variant="outline"
                       className="justify-start text-left h-auto py-4"
                       onClick={() => {
-                        // כאן בעתיד יטען את התוכן
                         console.log('Loading:', fav.title);
+                        setShowPlatformDialog(false);
                       }}
                     >
                       <span className="text-3xl mr-3">{fav.thumbnail}</span>
@@ -1329,8 +1329,8 @@ const Index = () => {
                       variant="outline"
                       className="justify-between h-auto py-4"
                       onClick={() => {
-                        // כאן בעתיד יטען את הפלייליסט
                         console.log('Loading playlist:', playlist.name);
+                        setShowPlatformDialog(false);
                       }}
                     >
                       <div className="flex-1 text-left">
@@ -1343,9 +1343,9 @@ const Index = () => {
                 </div>
               </div>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
