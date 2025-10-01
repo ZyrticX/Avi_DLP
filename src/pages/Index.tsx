@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DndContext,
@@ -137,6 +138,13 @@ const SortableItem = ({ segment, index, onEdit, onPlay }: {
   );
 };
 
+interface ConnectedPlatform {
+  name: string;
+  icon: string;
+  favorites: Array<{ id: string; title: string; thumbnail: string }>;
+  playlists: Array<{ id: string; name: string; count: number }>;
+}
+
 const Index = () => {
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
@@ -154,6 +162,9 @@ const Index = () => {
   const [videoId, setVideoId] = useState("");
   const [player, setPlayer] = useState<any>(null);
   const [videoDuration, setVideoDuration] = useState(100);
+  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
+  const [connectedPlatforms, setConnectedPlatforms] = useState<Record<string, ConnectedPlatform>>({});
+  const [showPlatformDialog, setShowPlatformDialog] = useState(false);
   const playerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -329,6 +340,63 @@ const Index = () => {
       const newFiles = Array.from(files);
       setUploadedFiles(prev => [...prev, ...newFiles]);
       console.log('Files dropped:', newFiles.map(f => f.name));
+    }
+  };
+
+  const handlePlatformConnect = (platformName: string) => {
+    // Mock data - בעתיד יחובר ל-API אמיתי
+    const mockData: Record<string, ConnectedPlatform> = {
+      "YouTube": {
+        name: "YouTube",
+        icon: "📺",
+        favorites: [
+          { id: "1", title: "Top Hits 2025", thumbnail: "🎵" },
+          { id: "2", title: "Workout Mix", thumbnail: "💪" },
+          { id: "3", title: "Chill Vibes", thumbnail: "🌊" },
+        ],
+        playlists: [
+          { id: "p1", name: "My Favorites", count: 45 },
+          { id: "p2", name: "Study Music", count: 28 },
+          { id: "p3", name: "Party Mix", count: 67 },
+        ]
+      },
+      "Spotify": {
+        name: "Spotify",
+        icon: "🎵",
+        favorites: [
+          { id: "1", title: "Daily Mix 1", thumbnail: "🎧" },
+          { id: "2", title: "Discover Weekly", thumbnail: "✨" },
+          { id: "3", title: "Release Radar", thumbnail: "🚀" },
+        ],
+        playlists: [
+          { id: "p1", name: "Liked Songs", count: 234 },
+          { id: "p2", name: "Road Trip", count: 56 },
+          { id: "p3", name: "Focus Flow", count: 89 },
+        ]
+      },
+      "SoundCloud": {
+        name: "SoundCloud",
+        icon: "🎧",
+        favorites: [
+          { id: "1", title: "Underground Beats", thumbnail: "🔥" },
+          { id: "2", title: "Indie Discoveries", thumbnail: "🌟" },
+          { id: "3", title: "Electronic Vibes", thumbnail: "⚡" },
+        ],
+        playlists: [
+          { id: "p1", name: "Favorites", count: 78 },
+          { id: "p2", name: "Remixes", count: 42 },
+        ]
+      }
+    };
+
+    if (mockData[platformName]) {
+      setConnectedPlatforms(prev => ({
+        ...prev,
+        [platformName]: mockData[platformName]
+      }));
+      setSelectedPlatform(platformName);
+      setShowPlatformDialog(true);
+      setShowStreamingServices(false);
     }
   };
 
@@ -510,14 +578,26 @@ const Index = () => {
                 </Button>
                 {showStreamingServices && (
                   <div className="absolute top-full left-0 w-full mt-2 bg-background border border-border rounded-lg shadow-lg z-50 p-2 space-y-1 max-h-80 overflow-y-auto">
-                    <Button variant="ghost" className="w-full justify-start text-sm">
-                      📺 YouTube
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start text-sm"
+                      onClick={() => handlePlatformConnect("YouTube")}
+                    >
+                      📺 YouTube {connectedPlatforms["YouTube"] && <Check className="w-4 h-4 ml-auto text-green-500" />}
                     </Button>
-                    <Button variant="ghost" className="w-full justify-start text-sm">
-                      🎵 Spotify
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start text-sm"
+                      onClick={() => handlePlatformConnect("Spotify")}
+                    >
+                      🎵 Spotify {connectedPlatforms["Spotify"] && <Check className="w-4 h-4 ml-auto text-green-500" />}
                     </Button>
-                    <Button variant="ghost" className="w-full justify-start text-sm">
-                      🎧 SoundCloud
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start text-sm"
+                      onClick={() => handlePlatformConnect("SoundCloud")}
+                    >
+                      🎧 SoundCloud {connectedPlatforms["SoundCloud"] && <Check className="w-4 h-4 ml-auto text-green-500" />}
                     </Button>
                     <Button variant="ghost" className="w-full justify-start text-sm">
                       🎵 Apple Music
@@ -577,6 +657,70 @@ const Index = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* הצגת תוכן מפלטפורמות מחוברות */}
+        {Object.keys(connectedPlatforms).length > 0 && (
+          <Card className="bg-gradient-to-br from-primary/10 to-accent/10 border-primary/30">
+            <CardHeader>
+              <CardTitle className="text-2xl flex items-center gap-2">
+                <Star className="w-8 h-8 text-primary" />
+                Connected Platforms Content
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {Object.values(connectedPlatforms).map((platform) => (
+                <div key={platform.name} className="border border-border/50 rounded-lg p-4 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">{platform.icon}</span>
+                    <h3 className="text-xl font-semibold">{platform.name}</h3>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedPlatform(platform.name);
+                        setShowPlatformDialog(true);
+                      }}
+                    >
+                      View All
+                    </Button>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-sm text-muted-foreground">Favorites</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                      {platform.favorites.slice(0, 3).map((fav) => (
+                        <Button
+                          key={fav.id}
+                          variant="outline"
+                          className="justify-start text-sm h-auto py-3"
+                        >
+                          <span className="text-2xl mr-2">{fav.thumbnail}</span>
+                          <span className="truncate">{fav.title}</span>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-sm text-muted-foreground">Playlists</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                      {platform.playlists.slice(0, 3).map((playlist) => (
+                        <Button
+                          key={playlist.id}
+                          variant="outline"
+                          className="justify-between text-sm h-auto py-3"
+                        >
+                          <span className="truncate">{playlist.name}</span>
+                          <Badge variant="secondary" className="ml-2">{playlist.count}</Badge>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
         {/* נגן וחיתוך */}
         <Card className="bg-gradient-to-br from-accent/10 to-primary/10 border-accent/30 shadow-card">
@@ -1131,6 +1275,77 @@ const Index = () => {
         </Card>
 
       </div>
+
+      {/* Dialog להצגת תוכן פלטפורמה */}
+      <Dialog open={showPlatformDialog} onOpenChange={setShowPlatformDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl flex items-center gap-3">
+              <span className="text-3xl">{selectedPlatform && connectedPlatforms[selectedPlatform]?.icon}</span>
+              {selectedPlatform} Content
+            </DialogTitle>
+            <DialogDescription>
+              Your personalized favorites and playlists from {selectedPlatform}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedPlatform && connectedPlatforms[selectedPlatform] && (
+            <div className="space-y-6 mt-4">
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Star className="w-5 h-5 text-primary" />
+                  Favorites
+                </h3>
+                <div className="grid grid-cols-1 gap-2">
+                  {connectedPlatforms[selectedPlatform].favorites.map((fav) => (
+                    <Button
+                      key={fav.id}
+                      variant="outline"
+                      className="justify-start text-left h-auto py-4"
+                      onClick={() => {
+                        // כאן בעתיד יטען את התוכן
+                        console.log('Loading:', fav.title);
+                      }}
+                    >
+                      <span className="text-3xl mr-3">{fav.thumbnail}</span>
+                      <div className="flex-1">
+                        <div className="font-medium">{fav.title}</div>
+                        <div className="text-xs text-muted-foreground">Click to load</div>
+                      </div>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Layers3 className="w-5 h-5 text-secondary" />
+                  Playlists
+                </h3>
+                <div className="grid grid-cols-1 gap-2">
+                  {connectedPlatforms[selectedPlatform].playlists.map((playlist) => (
+                    <Button
+                      key={playlist.id}
+                      variant="outline"
+                      className="justify-between h-auto py-4"
+                      onClick={() => {
+                        // כאן בעתיד יטען את הפלייליסט
+                        console.log('Loading playlist:', playlist.name);
+                      }}
+                    >
+                      <div className="flex-1 text-left">
+                        <div className="font-medium">{playlist.name}</div>
+                        <div className="text-xs text-muted-foreground">{playlist.count} items</div>
+                      </div>
+                      <Badge variant="secondary">{playlist.count}</Badge>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
