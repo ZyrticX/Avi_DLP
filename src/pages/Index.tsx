@@ -167,7 +167,9 @@ const Index = () => {
   const [showPlatformDialog, setShowPlatformDialog] = useState(false);
   const [cuttingMode, setCuttingMode] = useState<"video" | "audio" | null>(null);
   const [showCuttingOptions, setShowCuttingOptions] = useState(false);
+  const [currentEditingFile, setCurrentEditingFile] = useState<{file: File, url: string, type: 'audio' | 'video'} | null>(null);
   const playerRef = useRef<HTMLDivElement>(null);
+  const localMediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
@@ -322,6 +324,32 @@ const Index = () => {
       setUploadedFiles(prev => [...prev, ...newFiles]);
       console.log('Files uploaded:', newFiles.map(f => f.name));
     }
+  };
+
+  const handleEditFile = (file: File) => {
+    const fileUrl = URL.createObjectURL(file);
+    const fileType = file.type.startsWith('video/') ? 'video' : 'audio';
+    
+    setCurrentEditingFile({ file, url: fileUrl, type: fileType });
+    
+    // Wait for the media element to load to get duration
+    setTimeout(() => {
+      if (localMediaRef.current) {
+        localMediaRef.current.onloadedmetadata = () => {
+          const duration = localMediaRef.current!.duration;
+          setVideoDuration(duration);
+          setEndTime([duration]);
+          setStartTime([0]);
+          setCurrentTime([0]);
+        };
+      }
+    }, 100);
+    
+    // Clear YouTube video
+    setVideoId("");
+    
+    // Scroll to player
+    window.scrollTo({ top: 600, behavior: 'smooth' });
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -517,9 +545,22 @@ const Index = () => {
                   <p className="text-sm font-semibold">Uploaded Files ({uploadedFiles.length}):</p>
                   {uploadedFiles.map((file, idx) => (
                     <div key={idx} className="text-xs p-2 bg-primary/10 rounded flex items-center gap-2">
-                      <FileText className="w-4 h-4" />
+                      {file.type.startsWith('video/') ? (
+                        <Video className="w-4 h-4" />
+                      ) : (
+                        <Music className="w-4 h-4" />
+                      )}
                       <span className="flex-1 truncate">{file.name}</span>
                       <span className="text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="h-7 px-2 text-xs"
+                        onClick={() => handleEditFile(file)}
+                      >
+                        <Edit3 className="w-3 h-3 mr-1" />
+                        Edit
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -859,17 +900,51 @@ const Index = () => {
               )}
             </div>
 
-            {/* תצוגה מקדימה - נגן YouTube */}
+            {/* תצוגה מקדימה - נגן YouTube או קובץ מקומי */}
             <div className={`w-full ${isMobile ? 'max-w-sm' : 'max-w-4xl'} mx-auto mb-8`}>
               <div className="aspect-video bg-gradient-to-br from-muted to-background rounded-3xl border-2 border-accent/30 overflow-hidden relative">
-                {videoId ? (
+                {currentEditingFile ? (
+                  currentEditingFile.type === 'video' ? (
+                    <video
+                      ref={localMediaRef as React.RefObject<HTMLVideoElement>}
+                      src={currentEditingFile.url}
+                      controls
+                      className="w-full h-full"
+                      onTimeUpdate={(e) => {
+                        const time = (e.target as HTMLVideoElement).currentTime;
+                        setCurrentTime([time]);
+                      }}
+                      onPlay={() => setIsPlaying(true)}
+                      onPause={() => setIsPlaying(false)}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20">
+                      <div className="text-center space-y-4">
+                        <Music className="w-32 h-32 text-primary mx-auto animate-pulse" />
+                        <p className="text-2xl font-semibold">{currentEditingFile.file.name}</p>
+                        <audio
+                          ref={localMediaRef as React.RefObject<HTMLAudioElement>}
+                          src={currentEditingFile.url}
+                          controls
+                          className="w-full max-w-md mx-auto"
+                          onTimeUpdate={(e) => {
+                            const time = (e.target as HTMLAudioElement).currentTime;
+                            setCurrentTime([time]);
+                          }}
+                          onPlay={() => setIsPlaying(true)}
+                          onPause={() => setIsPlaying(false)}
+                        />
+                      </div>
+                    </div>
+                  )
+                ) : videoId ? (
                   <div ref={playerRef} className="w-full h-full"></div>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <div className="text-center">
                       <Video className={`${isMobile ? 'w-12 h-12' : 'w-20 h-20'} text-accent mx-auto mb-4`} />
                       <p className={`${isMobile ? 'text-lg' : 'text-2xl'} text-accent font-semibold mb-2`}>Preview</p>
-                      <p className={`${isMobile ? 'text-sm' : 'text-lg'} text-muted-foreground`}>The video will appear here after loading</p>
+                      <p className={`${isMobile ? 'text-sm' : 'text-lg'} text-muted-foreground`}>Upload file or paste YouTube link</p>
                     </div>
                   </div>
                 )}
