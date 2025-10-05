@@ -229,6 +229,9 @@ const Index = () => {
     }
 
     setVideoId(id);
+    
+    // Clear any local file
+    setCurrentEditingFile(null);
 
     if (player) {
       player.loadVideoById(id);
@@ -247,6 +250,8 @@ const Index = () => {
             const duration = event.target.getDuration();
             setVideoDuration(duration);
             setEndTime([duration]);
+            setStartTime([0]);
+            setCurrentTime([0]);
           },
           onStateChange: (event: any) => {
             setIsPlaying(event.data === 1);
@@ -254,6 +259,11 @@ const Index = () => {
         },
       });
     }
+    
+    // Scroll to player
+    setTimeout(() => {
+      window.scrollTo({ top: 600, behavior: 'smooth' });
+    }, 500);
   };
 
   const togglePlayPause = () => {
