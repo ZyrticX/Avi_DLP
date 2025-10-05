@@ -474,17 +474,6 @@ const Index = () => {
         </div>
       </div>
 
-      {/* הודעת Supabase */}
-      <Card className="max-w-4xl mx-auto mb-8 border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-3 text-center">
-            <Settings className="w-6 h-6 text-primary" />
-            <p className="text-lg">
-              For full app functionality (YouTube connection, video cutting, file saving), connect to Supabase via the green button above
-            </p>
-          </div>
-        </CardContent>
-      </Card>
 
       <div className="max-w-7xl mx-auto grid gap-8">
         
