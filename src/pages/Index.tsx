@@ -891,26 +891,15 @@ const Index = () => {
                   />
                   
                   {/* סמני התחלה וסיום לחיתוך */}
-                  <div className="relative mt-2">
-                    <div className="flex items-center gap-4 mb-2">
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="w-3 h-3 bg-green-500 rounded-full"></span>
-                        <span>Start</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="w-3 h-3 bg-red-500 rounded-full"></span>
-                        <span>End</span>
-                      </div>
-                    </div>
-                    
+                  <div className="relative mt-6">
                     {/* סלידר להתחלה */}
-                    <div className="mb-2">
+                    <div className="mb-4">
                       <Slider
                         value={startTime}
                         onValueChange={setStartTime}
                         max={videoDuration}
                         step={0.1}
-                        className="w-full [&_.slider-thumb]:w-4 [&_.slider-thumb]:h-4 [&_.slider-thumb]:bg-green-500"
+                        className="w-full"
                       />
                     </div>
                     
@@ -921,7 +910,7 @@ const Index = () => {
                         onValueChange={setEndTime}
                         max={videoDuration}
                         step={0.1}
-                        className="w-full [&_.slider-thumb]:w-4 [&_.slider-thumb]:h-4 [&_.slider-thumb]:bg-red-500"
+                        className="w-full"
                       />
                     </div>
                   </div>
