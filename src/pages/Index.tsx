@@ -58,12 +58,21 @@ import {
   AlertCircle
 } from "lucide-react";
 
+// Format seconds to HH:MM:SS
+const formatTime = (seconds: number): string => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+};
+
 // SortableItem component for drag and drop segments
-const SortableItem = ({ segment, index, onEdit, onPlay }: {
+const SortableItem = ({ segment, index, onEdit, onPlay, onDelete }: {
   segment: {id: number, start: number, end: number, title: string},
   index: number,
   onEdit: (id: number, newTitle: string) => void,
-  onPlay: (id: number) => void
+  onPlay: (id: number) => void,
+  onDelete: (id: number) => void
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(segment.title);
@@ -122,7 +131,7 @@ const SortableItem = ({ segment, index, onEdit, onPlay }: {
         ) : (
           <>
             <h3 className="text-lg font-semibold">{segment.title || `Segment ${index + 1}`}</h3>
-            <p className="text-muted-foreground">{segment.start}s - {segment.end}s</p>
+            <p className="text-muted-foreground">{formatTime(segment.start)} - {formatTime(segment.end)}</p>
           </>
         )}
       </div>
@@ -133,6 +142,10 @@ const SortableItem = ({ segment, index, onEdit, onPlay }: {
       <Button variant="outline" size="sm" onClick={() => onPlay(segment.id)}>
         <Play className="w-4 h-4 mr-1" />
         Play
+      </Button>
+      <Button variant="destructive" size="sm" onClick={() => onDelete(segment.id)}>
+        <X className="w-4 h-4 mr-1" />
+        Delete
       </Button>
     </div>
   );
@@ -306,6 +319,10 @@ const Index = () => {
       seekTo(segment.start);
       player.playVideo();
     }
+  };
+
+  const handleDeleteSegment = (id: number) => {
+    setSegments(segments.filter(segment => segment.id !== id));
   };
 
   const addSegment = () => {
@@ -1215,6 +1232,7 @@ const Index = () => {
                       index={index}
                       onEdit={handleEditSegment}
                       onPlay={handlePlaySegment}
+                      onDelete={handleDeleteSegment}
                     />
                   ))}
                 </SortableContext>
