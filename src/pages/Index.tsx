@@ -877,41 +877,134 @@ const Index = () => {
               
               {/* ציר זמן מתקדם עם סמני חיתוך */}
               <div className="mt-6 space-y-4">
-                <div className="relative">
-                  {/* ציר הזמן הראשי */}
-                  <Slider
-                    value={currentTime}
-                    onValueChange={(val) => {
-                      setCurrentTime(val);
-                      seekTo(val[0]);
+                {/* ציר הזמן הראשי */}
+                <Slider
+                  value={currentTime}
+                  onValueChange={(val) => {
+                    setCurrentTime(val);
+                    seekTo(val[0]);
+                  }}
+                  max={videoDuration}
+                  step={0.1}
+                  className="w-full"
+                />
+                
+                {/* פס בחירה לחיתוך */}
+                <div className="relative h-8 bg-red-900/30 rounded-lg mt-4">
+                  {/* הפס האדום */}
+                  <div 
+                    className="absolute top-1/2 -translate-y-1/2 h-2 bg-red-800 rounded-full"
+                    style={{
+                      left: `${(startTime[0] / videoDuration) * 100}%`,
+                      right: `${100 - (endTime[0] / videoDuration) * 100}%`
                     }}
-                    max={videoDuration}
-                    step={0.1}
-                    className="w-full [&_.slider-thumb]:w-6 [&_.slider-thumb]:h-6 [&_.slider-thumb]:bg-primary"
                   />
                   
-                  {/* סמני התחלה וסיום לחיתוך */}
-                  <div className="relative mt-6">
-                    {/* סלידר להתחלה */}
-                    <div className="mb-4">
-                      <Slider
-                        value={startTime}
-                        onValueChange={setStartTime}
-                        max={videoDuration}
-                        step={0.1}
-                        className="w-full"
-                      />
+                  {/* קו התחלה */}
+                  <div
+                    className="absolute top-0 h-full w-1 bg-blue-500 cursor-grab active:cursor-grabbing shadow-lg"
+                    style={{ left: `${(startTime[0] / videoDuration) * 100}%` }}
+                    draggable
+                    onMouseDown={(e) => {
+                      const startX = e.clientX;
+                      const startVal = startTime[0];
+                      const rect = e.currentTarget.parentElement!.getBoundingClientRect();
+                      
+                      const handleMouseMove = (e: MouseEvent) => {
+                        const deltaX = e.clientX - startX;
+                        const deltaPercent = deltaX / rect.width;
+                        const newVal = Math.max(0, Math.min(endTime[0] - 1, startVal + deltaPercent * videoDuration));
+                        setStartTime([newVal]);
+                      };
+                      
+                      const handleMouseUp = () => {
+                        document.removeEventListener('mousemove', handleMouseMove);
+                        document.removeEventListener('mouseup', handleMouseUp);
+                      };
+                      
+                      document.addEventListener('mousemove', handleMouseMove);
+                      document.addEventListener('mouseup', handleMouseUp);
+                    }}
+                    onTouchStart={(e) => {
+                      const touch = e.touches[0];
+                      const startX = touch.clientX;
+                      const startVal = startTime[0];
+                      const rect = e.currentTarget.parentElement!.getBoundingClientRect();
+                      
+                      const handleTouchMove = (e: TouchEvent) => {
+                        const touch = e.touches[0];
+                        const deltaX = touch.clientX - startX;
+                        const deltaPercent = deltaX / rect.width;
+                        const newVal = Math.max(0, Math.min(endTime[0] - 1, startVal + deltaPercent * videoDuration));
+                        setStartTime([newVal]);
+                      };
+                      
+                      const handleTouchEnd = () => {
+                        document.removeEventListener('touchmove', handleTouchMove);
+                        document.removeEventListener('touchend', handleTouchEnd);
+                      };
+                      
+                      document.addEventListener('touchmove', handleTouchMove);
+                      document.addEventListener('touchend', handleTouchEnd);
+                    }}
+                  >
+                    {/* תווית זמן התחלה */}
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-blue-500 text-white px-2 py-1 rounded whitespace-nowrap">
+                      {Math.floor(startTime[0] / 60).toString().padStart(2, '0')}:{Math.floor(startTime[0] % 60).toString().padStart(2, '0')}
                     </div>
-                    
-                    {/* סלידר לסיום */}
-                    <div>
-                      <Slider
-                        value={endTime}
-                        onValueChange={setEndTime}
-                        max={videoDuration}
-                        step={0.1}
-                        className="w-full"
-                      />
+                  </div>
+                  
+                  {/* קו סיום */}
+                  <div
+                    className="absolute top-0 h-full w-1 bg-blue-500 cursor-grab active:cursor-grabbing shadow-lg"
+                    style={{ left: `${(endTime[0] / videoDuration) * 100}%` }}
+                    draggable
+                    onMouseDown={(e) => {
+                      const startX = e.clientX;
+                      const startVal = endTime[0];
+                      const rect = e.currentTarget.parentElement!.getBoundingClientRect();
+                      
+                      const handleMouseMove = (e: MouseEvent) => {
+                        const deltaX = e.clientX - startX;
+                        const deltaPercent = deltaX / rect.width;
+                        const newVal = Math.max(startTime[0] + 1, Math.min(videoDuration, startVal + deltaPercent * videoDuration));
+                        setEndTime([newVal]);
+                      };
+                      
+                      const handleMouseUp = () => {
+                        document.removeEventListener('mousemove', handleMouseMove);
+                        document.removeEventListener('mouseup', handleMouseUp);
+                      };
+                      
+                      document.addEventListener('mousemove', handleMouseMove);
+                      document.addEventListener('mouseup', handleMouseUp);
+                    }}
+                    onTouchStart={(e) => {
+                      const touch = e.touches[0];
+                      const startX = touch.clientX;
+                      const startVal = endTime[0];
+                      const rect = e.currentTarget.parentElement!.getBoundingClientRect();
+                      
+                      const handleTouchMove = (e: TouchEvent) => {
+                        const touch = e.touches[0];
+                        const deltaX = touch.clientX - startX;
+                        const deltaPercent = deltaX / rect.width;
+                        const newVal = Math.max(startTime[0] + 1, Math.min(videoDuration, startVal + deltaPercent * videoDuration));
+                        setEndTime([newVal]);
+                      };
+                      
+                      const handleTouchEnd = () => {
+                        document.removeEventListener('touchmove', handleTouchMove);
+                        document.removeEventListener('touchend', handleTouchEnd);
+                      };
+                      
+                      document.addEventListener('touchmove', handleTouchMove);
+                      document.addEventListener('touchend', handleTouchEnd);
+                    }}
+                  >
+                    {/* תווית זמן סיום */}
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-blue-500 text-white px-2 py-1 rounded whitespace-nowrap">
+                      {Math.floor(endTime[0] / 60).toString().padStart(2, '0')}:{Math.floor(endTime[0] % 60).toString().padStart(2, '0')}
                     </div>
                   </div>
                 </div>
