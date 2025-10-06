@@ -30,15 +30,20 @@ export const useFFmpeg = () => {
       console.log('Starting FFmpeg load...');
       setIsLoading(true);
       
-      // Use unpkg CDN with UMD build for better browser compatibility
-      const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+      // Use jsdelivr CDN with ESM build - better CORS support
+      const baseURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm';
       
       console.log('Loading FFmpeg core files from:', baseURL);
       
-      // toBlobURL is used to bypass CORS issue
+      // Create blob URLs to bypass CORS
+      const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript');
+      const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm');
+      
+      console.log('Blob URLs created, loading FFmpeg...');
+      
       await ffmpeg.load({
-        coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-        wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+        coreURL,
+        wasmURL,
       });
 
       ffmpeg.on('log', ({ message }) => {
