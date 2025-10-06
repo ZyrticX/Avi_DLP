@@ -57,7 +57,11 @@ import {
   X,
   Star,
   Sparkles,
-  AlertCircle
+  AlertCircle,
+  Wand2,
+  Crop,
+  Mic,
+  AudioWaveform
 } from "lucide-react";
 
 // Format seconds to HH:MM:SS
@@ -185,6 +189,8 @@ const Index = () => {
   const [currentEditingFile, setCurrentEditingFile] = useState<{file: File, url: string, type: 'audio' | 'video'} | null>(null);
   const [selectedAudioFormat, setSelectedAudioFormat] = useState<AudioFormat>('aac');
   const [selectedVideoResolution, setSelectedVideoResolution] = useState<VideoResolution>('1080p');
+  const [selectedEffect, setSelectedEffect] = useState<'grayscale' | 'sepia' | 'negative' | 'blur' | 'sharpen'>('grayscale');
+  const [cropSettings, setCropSettings] = useState({ width: 1920, height: 1080, x: 0, y: 0 });
   const playerRef = useRef<HTMLDivElement>(null);
   const localMediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
   const navigate = useNavigate();
@@ -482,6 +488,138 @@ const Index = () => {
     if (blob) {
       const extension = isAudio ? selectedAudioFormat : 'mp4';
       downloadBlob(blob, `merged_${Date.now()}.${extension}`);
+    }
+  };
+
+  const handleExtractAudio = async () => {
+    if (!currentEditingFile) {
+      toast({
+        title: "אין קובץ לעיבוד",
+        description: "אנא העלה קובץ וידאו תחילה",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "מחלץ אודיו...",
+      description: "זה עשוי לקחת מספר שניות",
+    });
+
+    const blob = await extractAudio(currentEditingFile.file, selectedAudioFormat, '320k');
+    if (blob) {
+      downloadBlob(blob, `audio.${selectedAudioFormat}`);
+      toast({
+        title: "הצלחה!",
+        description: "האודיו הופק בהצלחה",
+      });
+    }
+  };
+
+  const handleNormalizeAudio = async () => {
+    if (!currentEditingFile) {
+      toast({
+        title: "אין קובץ לעיבוד",
+        description: "אנא העלה קובץ תחילה",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "מנרמל עוצמת קול...",
+      description: "זה עשוי לקחת מספר שניות",
+    });
+
+    const blob = await normalizeAudio(currentEditingFile.file, selectedAudioFormat);
+    if (blob) {
+      downloadBlob(blob, `normalized.${selectedAudioFormat}`);
+      toast({
+        title: "הצלחה!",
+        description: "האודיו נורמל בהצלחה",
+      });
+    }
+  };
+
+  const handleRemoveVocals = async () => {
+    if (!currentEditingFile) {
+      toast({
+        title: "אין קובץ לעיבוד",
+        description: "אנא העלה קובץ אודיו תחילה",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "מסיר ווקאלים...",
+      description: "זה עשוי לקחת זמן רב",
+    });
+
+    const blob = await removeVocals(currentEditingFile.file);
+    if (blob) {
+      downloadBlob(blob, `instrumental.mp3`);
+      toast({
+        title: "הצלחה!",
+        description: "גרסה אינסטרומנטלית נוצרה",
+      });
+    }
+  };
+
+  const handleCropVideo = async () => {
+    if (!currentEditingFile || currentEditingFile.type !== 'video') {
+      toast({
+        title: "אין קובץ וידאו",
+        description: "אנא העלה קובץ וידאו תחילה",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "חותך וידאו...",
+      description: "זה עשוי לקחת מספר שניות",
+    });
+
+    const blob = await cropVideo(
+      currentEditingFile.file,
+      cropSettings.width,
+      cropSettings.height,
+      cropSettings.x,
+      cropSettings.y
+    );
+    
+    if (blob) {
+      downloadBlob(blob, `cropped.mp4`);
+      toast({
+        title: "הצלחה!",
+        description: "הוידאו נחתך בהצלחה",
+      });
+    }
+  };
+
+  const handleApplyEffect = async () => {
+    if (!currentEditingFile || currentEditingFile.type !== 'video') {
+      toast({
+        title: "אין קובץ וידאו",
+        description: "אנא העלה קובץ וידאו תחילה",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: `מוסיף אפקט ${selectedEffect}...`,
+      description: "זה עשוי לקחת מספר שניות",
+    });
+
+    const blob = await applyVideoEffect(currentEditingFile.file, selectedEffect);
+    if (blob) {
+      downloadBlob(blob, `${selectedEffect}.mp4`);
+      toast({
+        title: "הצלחה!",
+        description: `אפקט ${selectedEffect} הוחל בהצלחה`,
+      });
     }
   };
 
@@ -1635,6 +1773,187 @@ const Index = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* כלים מתקדמים */}
+        {currentEditingFile && (
+          <Card className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/30">
+            <CardHeader>
+              <CardTitle className="text-3xl flex items-center gap-3">
+                <Wand2 className="w-10 h-10 text-purple-500" />
+                כלים מתקדמים
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* כלי אודיו */}
+              <div className="space-y-4">
+                <h4 className="text-xl font-semibold flex items-center gap-2 text-purple-400">
+                  <AudioWaveform className="w-6 h-6" />
+                  עיבוד אודיו
+                </h4>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <Button 
+                    size="lg"
+                    variant="outline"
+                    className="h-24 flex-col gap-2 border-purple-500/30 hover:bg-purple-500/10"
+                    onClick={handleExtractAudio}
+                    disabled={isProcessing || !isFFmpegReady}
+                  >
+                    <Music className="w-8 h-8 text-purple-500" />
+                    <div className="text-center">
+                      <div className="font-semibold">חילוץ אודיו</div>
+                      <div className="text-xs text-muted-foreground">הפק אודיו מוידאו</div>
+                    </div>
+                  </Button>
+                  
+                  <Button 
+                    size="lg"
+                    variant="outline"
+                    className="h-24 flex-col gap-2 border-purple-500/30 hover:bg-purple-500/10"
+                    onClick={handleNormalizeAudio}
+                    disabled={isProcessing || !isFFmpegReady}
+                  >
+                    <Volume2 className="w-8 h-8 text-purple-500" />
+                    <div className="text-center">
+                      <div className="font-semibold">נרמול עוצמת קול</div>
+                      <div className="text-xs text-muted-foreground">איזון עוצמת קול</div>
+                    </div>
+                  </Button>
+                  
+                  <Button 
+                    size="lg"
+                    variant="outline"
+                    className="h-24 flex-col gap-2 border-purple-500/30 hover:bg-purple-500/10"
+                    onClick={handleRemoveVocals}
+                    disabled={isProcessing || !isFFmpegReady}
+                  >
+                    <Mic className="w-8 h-8 text-purple-500" />
+                    <div className="text-center">
+                      <div className="font-semibold">הסרת ווקאלים</div>
+                      <div className="text-xs text-muted-foreground">יצירת גרסה אינסטרומנטלית</div>
+                    </div>
+                  </Button>
+                </div>
+              </div>
+
+              {/* כלי וידאו */}
+              {currentEditingFile.type === 'video' && (
+                <div className="space-y-4">
+                  <h4 className="text-xl font-semibold flex items-center gap-2 text-pink-400">
+                    <Video className="w-6 h-6" />
+                    עיבוד וידאו
+                  </h4>
+                  
+                  {/* חיתוך וידאו */}
+                  <div className="bg-background/50 p-4 rounded-lg border border-pink-500/30">
+                    <h5 className="font-semibold mb-3 flex items-center gap-2">
+                      <Crop className="w-5 h-5 text-pink-500" />
+                      חיתוך פריים
+                    </h5>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                      <div>
+                        <label className="text-sm">רוחב</label>
+                        <Input 
+                          type="number" 
+                          value={cropSettings.width}
+                          onChange={(e) => setCropSettings({...cropSettings, width: parseInt(e.target.value)})}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm">גובה</label>
+                        <Input 
+                          type="number" 
+                          value={cropSettings.height}
+                          onChange={(e) => setCropSettings({...cropSettings, height: parseInt(e.target.value)})}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm">X</label>
+                        <Input 
+                          type="number" 
+                          value={cropSettings.x}
+                          onChange={(e) => setCropSettings({...cropSettings, x: parseInt(e.target.value)})}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm">Y</label>
+                        <Input 
+                          type="number" 
+                          value={cropSettings.y}
+                          onChange={(e) => setCropSettings({...cropSettings, y: parseInt(e.target.value)})}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                    <Button 
+                      className="w-full"
+                      onClick={handleCropVideo}
+                      disabled={isProcessing || !isFFmpegReady}
+                    >
+                      <Crop className="w-5 h-5 mr-2" />
+                      חתוך וידאו
+                    </Button>
+                  </div>
+
+                  {/* אפקטים */}
+                  <div className="bg-background/50 p-4 rounded-lg border border-pink-500/30">
+                    <h5 className="font-semibold mb-3 flex items-center gap-2">
+                      <Palette className="w-5 h-5 text-pink-500" />
+                      אפקטים ויזואליים
+                    </h5>
+                    <div className="grid grid-cols-3 md:grid-cols-5 gap-2 mb-4">
+                      <Button 
+                        variant={selectedEffect === 'grayscale' ? 'default' : 'outline'}
+                        onClick={() => setSelectedEffect('grayscale')}
+                        size="sm"
+                      >
+                        שחור לבן
+                      </Button>
+                      <Button 
+                        variant={selectedEffect === 'sepia' ? 'default' : 'outline'}
+                        onClick={() => setSelectedEffect('sepia')}
+                        size="sm"
+                      >
+                        ספיה
+                      </Button>
+                      <Button 
+                        variant={selectedEffect === 'negative' ? 'default' : 'outline'}
+                        onClick={() => setSelectedEffect('negative')}
+                        size="sm"
+                      >
+                        נגטיב
+                      </Button>
+                      <Button 
+                        variant={selectedEffect === 'blur' ? 'default' : 'outline'}
+                        onClick={() => setSelectedEffect('blur')}
+                        size="sm"
+                      >
+                        טשטוש
+                      </Button>
+                      <Button 
+                        variant={selectedEffect === 'sharpen' ? 'default' : 'outline'}
+                        onClick={() => setSelectedEffect('sharpen')}
+                        size="sm"
+                      >
+                        חידוד
+                      </Button>
+                    </div>
+                    <Button 
+                      className="w-full"
+                      onClick={handleApplyEffect}
+                      disabled={isProcessing || !isFFmpegReady}
+                    >
+                      <Wand2 className="w-5 h-5 mr-2" />
+                      החל אפקט: {selectedEffect}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* כרטיסי מחירים ומנויים */}
         <Card className="bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 border-primary/20">
