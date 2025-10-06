@@ -264,6 +264,282 @@ export const useFFmpeg = () => {
     }
   };
 
+  const extractAudio = async (
+    file: File,
+    format: AudioFormat = 'mp3',
+    bitrate: string = '320k'
+  ): Promise<Blob | null> => {
+    if (!isReady) return null;
+
+    setIsLoading(true);
+    setProgress(0);
+    const ffmpeg = ffmpegRef.current;
+
+    try {
+      const inputFileName = `input.${file.name.split('.').pop()}`;
+      const outputFileName = `audio.${format}`;
+
+      await ffmpeg.writeFile(inputFileName, await fetchFile(file));
+
+      const audioCodecs: Record<AudioFormat, string[]> = {
+        mp3: ['-c:a', 'libmp3lame', '-b:a', bitrate],
+        wav: ['-c:a', 'pcm_s16le'],
+        flac: ['-c:a', 'flac'],
+        aac: ['-c:a', 'aac', '-b:a', bitrate],
+        ogg: ['-c:a', 'libvorbis', '-b:a', bitrate],
+        m4a: ['-c:a', 'aac', '-b:a', bitrate],
+      };
+
+      await ffmpeg.exec([
+        '-i', inputFileName,
+        '-vn',
+        ...audioCodecs[format],
+        outputFileName
+      ]);
+
+      const data = await ffmpeg.readFile(outputFileName);
+      const blob = new Blob([data], { type: `audio/${format}` });
+
+      await ffmpeg.deleteFile(inputFileName);
+      await ffmpeg.deleteFile(outputFileName);
+
+      setIsLoading(false);
+      setProgress(0);
+
+      toast({
+        title: "חילוץ אודיו הושלם!",
+        description: "האודיו חולץ בהצלחה מהוידאו",
+      });
+
+      return blob;
+    } catch (error) {
+      console.error('Extract audio error:', error);
+      setIsLoading(false);
+      setProgress(0);
+      toast({
+        title: "שגיאה בחילוץ אודיו",
+        description: "לא ניתן לחלץ את האודיו. נסה שנית.",
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
+
+  const normalizeAudio = async (
+    file: File,
+    format: AudioFormat = 'mp3'
+  ): Promise<Blob | null> => {
+    if (!isReady) return null;
+
+    setIsLoading(true);
+    setProgress(0);
+    const ffmpeg = ffmpegRef.current;
+
+    try {
+      const inputFileName = `input.${file.name.split('.').pop()}`;
+      const outputFileName = `normalized.${format}`;
+
+      await ffmpeg.writeFile(inputFileName, await fetchFile(file));
+
+      await ffmpeg.exec([
+        '-i', inputFileName,
+        '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11',
+        '-c:a', format === 'mp3' ? 'libmp3lame' : 'aac',
+        '-b:a', '320k',
+        outputFileName
+      ]);
+
+      const data = await ffmpeg.readFile(outputFileName);
+      const blob = new Blob([data], { type: `audio/${format}` });
+
+      await ffmpeg.deleteFile(inputFileName);
+      await ffmpeg.deleteFile(outputFileName);
+
+      setIsLoading(false);
+      setProgress(0);
+
+      toast({
+        title: "נרמול הושלם!",
+        description: "עוצמת האודיו נרמלה",
+      });
+
+      return blob;
+    } catch (error) {
+      console.error('Normalize error:', error);
+      setIsLoading(false);
+      setProgress(0);
+      toast({
+        title: "שגיאה בנרמול",
+        description: "לא ניתן לנרמל את האודיו. נסה שנית.",
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
+
+  const cropVideo = async (
+    file: File,
+    width: number,
+    height: number,
+    x: number = 0,
+    y: number = 0
+  ): Promise<Blob | null> => {
+    if (!isReady) return null;
+
+    setIsLoading(true);
+    setProgress(0);
+    const ffmpeg = ffmpegRef.current;
+
+    try {
+      const inputFileName = `input.${file.name.split('.').pop()}`;
+      const outputFileName = `cropped.mp4`;
+
+      await ffmpeg.writeFile(inputFileName, await fetchFile(file));
+
+      await ffmpeg.exec([
+        '-i', inputFileName,
+        '-vf', `crop=${width}:${height}:${x}:${y}`,
+        '-c:a', 'copy',
+        outputFileName
+      ]);
+
+      const data = await ffmpeg.readFile(outputFileName);
+      const blob = new Blob([data], { type: 'video/mp4' });
+
+      await ffmpeg.deleteFile(inputFileName);
+      await ffmpeg.deleteFile(outputFileName);
+
+      setIsLoading(false);
+      setProgress(0);
+
+      toast({
+        title: "חיתוך וידאו הושלם!",
+        description: "הוידאו נחתך בהצלחה",
+      });
+
+      return blob;
+    } catch (error) {
+      console.error('Crop video error:', error);
+      setIsLoading(false);
+      setProgress(0);
+      toast({
+        title: "שגיאה בחיתוך וידאו",
+        description: "לא ניתן לחתוך את הוידאו. נסה שנית.",
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
+
+  const applyVideoEffect = async (
+    file: File,
+    effect: 'grayscale' | 'sepia' | 'negative' | 'blur' | 'sharpen'
+  ): Promise<Blob | null> => {
+    if (!isReady) return null;
+
+    setIsLoading(true);
+    setProgress(0);
+    const ffmpeg = ffmpegRef.current;
+
+    try {
+      const inputFileName = `input.${file.name.split('.').pop()}`;
+      const outputFileName = `effect.mp4`;
+
+      await ffmpeg.writeFile(inputFileName, await fetchFile(file));
+
+      const effects: Record<string, string> = {
+        grayscale: 'hue=s=0',
+        sepia: 'colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131',
+        negative: 'negate',
+        blur: 'boxblur=5:1',
+        sharpen: 'unsharp=5:5:1.0:5:5:0.0'
+      };
+
+      await ffmpeg.exec([
+        '-i', inputFileName,
+        '-vf', effects[effect],
+        '-c:a', 'copy',
+        outputFileName
+      ]);
+
+      const data = await ffmpeg.readFile(outputFileName);
+      const blob = new Blob([data], { type: 'video/mp4' });
+
+      await ffmpeg.deleteFile(inputFileName);
+      await ffmpeg.deleteFile(outputFileName);
+
+      setIsLoading(false);
+      setProgress(0);
+
+      toast({
+        title: "אפקט הוחל בהצלחה!",
+        description: `אפקט ${effect} הוחל על הוידאו`,
+      });
+
+      return blob;
+    } catch (error) {
+      console.error('Apply effect error:', error);
+      setIsLoading(false);
+      setProgress(0);
+      toast({
+        title: "שגיאה בהוספת אפקט",
+        description: "לא ניתן להוסיף את האפקט. נסה שנית.",
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
+
+  const removeVocals = async (file: File): Promise<Blob | null> => {
+    if (!isReady) return null;
+
+    setIsLoading(true);
+    setProgress(0);
+    const ffmpeg = ffmpegRef.current;
+
+    try {
+      const inputFileName = `input.${file.name.split('.').pop()}`;
+      const outputFileName = `instrumental.mp3`;
+
+      await ffmpeg.writeFile(inputFileName, await fetchFile(file));
+
+      // Simple vocal reduction using phase inversion on center channel
+      await ffmpeg.exec([
+        '-i', inputFileName,
+        '-af', 'pan=stereo|c0=c0-c1|c1=c1-c0,volume=2',
+        '-c:a', 'libmp3lame',
+        '-b:a', '320k',
+        outputFileName
+      ]);
+
+      const data = await ffmpeg.readFile(outputFileName);
+      const blob = new Blob([data], { type: 'audio/mp3' });
+
+      await ffmpeg.deleteFile(inputFileName);
+      await ffmpeg.deleteFile(outputFileName);
+
+      setIsLoading(false);
+      setProgress(0);
+
+      toast({
+        title: "הסרת ווקאלים הושלמה!",
+        description: "הווקאלים הוסרו (תוצאה משוערת)",
+      });
+
+      return blob;
+    } catch (error) {
+      console.error('Remove vocals error:', error);
+      setIsLoading(false);
+      setProgress(0);
+      toast({
+        title: "שגיאה בהסרת ווקאלים",
+        description: "לא ניתן להסיר את הווקאלים. נסה שנית.",
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
+
   const downloadBlob = (blob: Blob, fileName: string) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -281,6 +557,11 @@ export const useFFmpeg = () => {
     progress,
     cutVideo,
     mergeSegments,
+    extractAudio,
+    normalizeAudio,
+    cropVideo,
+    applyVideoEffect,
+    removeVocals,
     downloadBlob,
   };
 };

@@ -189,7 +189,19 @@ const Index = () => {
   const localMediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { isLoading: isProcessing, isReady: isFFmpegReady, progress, cutVideo, mergeSegments, downloadBlob } = useFFmpeg();
+  const { 
+    isLoading: isProcessing, 
+    isReady: isFFmpegReady, 
+    progress, 
+    cutVideo, 
+    mergeSegments, 
+    extractAudio,
+    normalizeAudio,
+    cropVideo,
+    applyVideoEffect,
+    removeVocals,
+    downloadBlob 
+  } = useFFmpeg();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -935,19 +947,55 @@ const Index = () => {
                   {cuttingMode === "video" ? (
                     <div className="space-y-3">
                       <div className="grid grid-cols-2 gap-2">
-                        <Button variant="outline" size="sm" className="text-xs">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-xs"
+                          disabled={!currentEditingFile || isProcessing}
+                          onClick={async () => {
+                            if (!currentEditingFile) return;
+                            const blob = await cropVideo(currentEditingFile.file, 1280, 720, 0, 0);
+                            if (blob) downloadBlob(blob, 'cropped_video.mp4');
+                          }}
+                        >
                           <Video className="w-3 h-3 mr-1" />
                           Crop Video
                         </Button>
-                        <Button variant="outline" size="sm" className="text-xs">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-xs"
+                          disabled={!currentEditingFile || isProcessing || segments.length === 0}
+                          onClick={() => handleDownloadSegment(segments[0])}
+                        >
                           <Scissors className="w-3 h-3 mr-1" />
                           Trim
                         </Button>
-                        <Button variant="outline" size="sm" className="text-xs">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-xs"
+                          disabled={!currentEditingFile || isProcessing}
+                          onClick={async () => {
+                            if (!currentEditingFile) return;
+                            const blob = await applyVideoEffect(currentEditingFile.file, 'grayscale');
+                            if (blob) downloadBlob(blob, 'effect_video.mp4');
+                          }}
+                        >
                           <Sparkles className="w-3 h-3 mr-1" />
                           Effects
                         </Button>
-                        <Button variant="outline" size="sm" className="text-xs">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-xs"
+                          disabled={!currentEditingFile || isProcessing}
+                          onClick={async () => {
+                            if (!currentEditingFile) return;
+                            const blob = await cutVideo(currentEditingFile.file, { id: 0, start: 0, end: videoDuration, title: 'full' }, 'mp4', selectedVideoResolution);
+                            if (blob) downloadBlob(blob, `quality_${selectedVideoResolution}.mp4`);
+                          }}
+                        >
                           <Settings className="w-3 h-3 mr-1" />
                           Quality
                         </Button>
@@ -961,19 +1009,59 @@ const Index = () => {
                   ) : (
                     <div className="space-y-3">
                       <div className="grid grid-cols-2 gap-2">
-                        <Button variant="outline" size="sm" className="text-xs">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-xs"
+                          disabled={!currentEditingFile || isProcessing}
+                          onClick={async () => {
+                            if (!currentEditingFile) return;
+                            const blob = await extractAudio(currentEditingFile.file, selectedAudioFormat);
+                            if (blob) downloadBlob(blob, `audio.${selectedAudioFormat}`);
+                          }}
+                        >
                           <Headphones className="w-3 h-3 mr-1" />
                           Extract Audio
                         </Button>
-                        <Button variant="outline" size="sm" className="text-xs">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-xs"
+                          disabled={!currentEditingFile || isProcessing}
+                          onClick={async () => {
+                            if (!currentEditingFile) return;
+                            const blob = await normalizeAudio(currentEditingFile.file, selectedAudioFormat);
+                            if (blob) downloadBlob(blob, `normalized.${selectedAudioFormat}`);
+                          }}
+                        >
                           <Volume2 className="w-3 h-3 mr-1" />
                           Normalize
                         </Button>
-                        <Button variant="outline" size="sm" className="text-xs">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-xs"
+                          disabled={!currentEditingFile || isProcessing}
+                          onClick={async () => {
+                            if (!currentEditingFile) return;
+                            const blob = await removeVocals(currentEditingFile.file);
+                            if (blob) downloadBlob(blob, 'instrumental.mp3');
+                          }}
+                        >
                           <Music className="w-3 h-3 mr-1" />
                           Remove Vocals
                         </Button>
-                        <Button variant="outline" size="sm" className="text-xs">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-xs"
+                          disabled={!currentEditingFile || isProcessing}
+                          onClick={async () => {
+                            if (!currentEditingFile) return;
+                            const blob = await extractAudio(currentEditingFile.file, selectedAudioFormat, '320k');
+                            if (blob) downloadBlob(blob, `hq_audio.${selectedAudioFormat}`);
+                          }}
+                        >
                           <Settings className="w-3 h-3 mr-1" />
                           Audio Quality
                         </Button>
