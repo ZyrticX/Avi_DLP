@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useFFmpeg, AudioFormat, VideoResolution } from "@/hooks/useFFmpeg";
+import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -181,10 +183,13 @@ const Index = () => {
   const [cuttingMode, setCuttingMode] = useState<"video" | "audio" | null>(null);
   const [showCuttingOptions, setShowCuttingOptions] = useState(false);
   const [currentEditingFile, setCurrentEditingFile] = useState<{file: File, url: string, type: 'audio' | 'video'} | null>(null);
+  const [selectedAudioFormat, setSelectedAudioFormat] = useState<AudioFormat>('aac');
+  const [selectedVideoResolution, setSelectedVideoResolution] = useState<VideoResolution>('1080p');
   const playerRef = useRef<HTMLDivElement>(null);
   const localMediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { isLoading: isProcessing, isReady: isFFmpegReady, progress, cutVideo, mergeSegments, downloadBlob } = useFFmpeg();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -397,6 +402,74 @@ const Index = () => {
       const newFiles = Array.from(files);
       setUploadedFiles(prev => [...prev, ...newFiles]);
       console.log('Files dropped:', newFiles.map(f => f.name));
+    }
+  };
+
+  const handleDownloadSegment = async (segment: typeof segments[0]) => {
+    if (!currentEditingFile) {
+      toast({
+        title: "אין קובץ לעיבוד",
+        description: "אנא העלה קובץ תחילה",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const isAudio = cuttingMode === 'audio' || currentEditingFile.type === 'audio';
+    const format = isAudio ? selectedAudioFormat : 'mp4';
+    
+    const blob = await cutVideo(
+      currentEditingFile.file,
+      segment,
+      format,
+      isAudio ? undefined : selectedVideoResolution
+    );
+
+    if (blob) {
+      const extension = isAudio ? selectedAudioFormat : 'mp4';
+      downloadBlob(blob, `${segment.title || 'segment'}.${extension}`);
+    }
+  };
+
+  const handleDownloadAllSegments = async () => {
+    if (!currentEditingFile || segments.length === 0) {
+      toast({
+        title: "אין מקטעים להורדה",
+        description: "אנא צור מקטעים תחילה",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    for (const segment of segments) {
+      await handleDownloadSegment(segment);
+    }
+  };
+
+  const handleMergeAndDownload = async () => {
+    if (!currentEditingFile || segments.length === 0) {
+      toast({
+        title: "אין מקטעים למיזוג",
+        description: "אנא צור מקטעים תחילה",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const isAudio = cuttingMode === 'audio' || currentEditingFile.type === 'audio';
+    const format = isAudio ? selectedAudioFormat : 'mp4';
+
+    const blob = await mergeSegments(
+      currentEditingFile.file,
+      segments,
+      format,
+      fadeInDuration[0],
+      fadeOutDuration[0]
+    );
+
+    if (blob) {
+      const extension = isAudio ? selectedAudioFormat : 'mp4';
+      downloadBlob(blob, `merged_${Date.now()}.${extension}`);
     }
   };
 
@@ -1254,12 +1327,48 @@ const Index = () => {
               <div className="space-y-3">
                 <label className={`${isMobile ? 'text-base' : 'text-lg'} font-medium`}>Audio Format</label>
                 <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-3'} gap-2`}>
-                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>MP3</Button>
-                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>WAV</Button>
-                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>FLAC</Button>
-                  <Button className={`${isMobile ? 'text-sm' : 'text-lg'} bg-accent hover:bg-accent/90`}>AAC</Button>
-                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>OGG</Button>
-                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>M4A</Button>
+                  <Button 
+                    variant={selectedAudioFormat === 'mp3' ? 'default' : 'outline'} 
+                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
+                    onClick={() => setSelectedAudioFormat('mp3')}
+                  >
+                    MP3
+                  </Button>
+                  <Button 
+                    variant={selectedAudioFormat === 'wav' ? 'default' : 'outline'} 
+                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
+                    onClick={() => setSelectedAudioFormat('wav')}
+                  >
+                    WAV
+                  </Button>
+                  <Button 
+                    variant={selectedAudioFormat === 'flac' ? 'default' : 'outline'} 
+                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
+                    onClick={() => setSelectedAudioFormat('flac')}
+                  >
+                    FLAC
+                  </Button>
+                  <Button 
+                    variant={selectedAudioFormat === 'aac' ? 'default' : 'outline'} 
+                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
+                    onClick={() => setSelectedAudioFormat('aac')}
+                  >
+                    AAC
+                  </Button>
+                  <Button 
+                    variant={selectedAudioFormat === 'ogg' ? 'default' : 'outline'} 
+                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
+                    onClick={() => setSelectedAudioFormat('ogg')}
+                  >
+                    OGG
+                  </Button>
+                  <Button 
+                    variant={selectedAudioFormat === 'm4a' ? 'default' : 'outline'} 
+                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
+                    onClick={() => setSelectedAudioFormat('m4a')}
+                  >
+                    M4A
+                  </Button>
                 </div>
               </div>
               <div className="space-y-3">
@@ -1276,12 +1385,48 @@ const Index = () => {
               <div className="space-y-3">
                 <label className={`${isMobile ? 'text-base' : 'text-lg'} font-medium`}>Video Resolution</label>
                 <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-3'} gap-2`}>
-                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>480p</Button>
-                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>720p</Button>
-                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>1080p</Button>
-                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>1440p</Button>
-                  <Button className={`${isMobile ? 'text-sm' : 'text-lg'} bg-accent hover:bg-accent/90`}>4K</Button>
-                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>8K</Button>
+                  <Button 
+                    variant={selectedVideoResolution === '480p' ? 'default' : 'outline'} 
+                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
+                    onClick={() => setSelectedVideoResolution('480p')}
+                  >
+                    480p
+                  </Button>
+                  <Button 
+                    variant={selectedVideoResolution === '720p' ? 'default' : 'outline'} 
+                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
+                    onClick={() => setSelectedVideoResolution('720p')}
+                  >
+                    720p
+                  </Button>
+                  <Button 
+                    variant={selectedVideoResolution === '1080p' ? 'default' : 'outline'} 
+                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
+                    onClick={() => setSelectedVideoResolution('1080p')}
+                  >
+                    1080p
+                  </Button>
+                  <Button 
+                    variant={selectedVideoResolution === '1440p' ? 'default' : 'outline'} 
+                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
+                    onClick={() => setSelectedVideoResolution('1440p')}
+                  >
+                    1440p
+                  </Button>
+                  <Button 
+                    variant={selectedVideoResolution === '4k' ? 'default' : 'outline'} 
+                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
+                    onClick={() => setSelectedVideoResolution('4k')}
+                  >
+                    4K
+                  </Button>
+                  <Button 
+                    variant={selectedVideoResolution === '8k' ? 'default' : 'outline'} 
+                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
+                    onClick={() => setSelectedVideoResolution('8k')}
+                  >
+                    8K
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -1334,15 +1479,37 @@ const Index = () => {
                 </div>
               </div>
 
-              <Button size={isMobile ? "default" : "lg"} className={`w-full ${isMobile ? 'text-lg py-3' : 'text-xl py-4'} bg-primary hover:bg-primary/90`}>
+              {isProcessing && (
+                <div className="bg-primary/10 border border-primary/30 rounded-lg p-4 mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">מעבד...</span>
+                    <span className="text-sm font-medium">{progress}%</span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-2">
+                    <div 
+                      className="bg-primary h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <Button 
+                size={isMobile ? "default" : "lg"} 
+                className={`w-full ${isMobile ? 'text-lg py-3' : 'text-xl py-4'} bg-primary hover:bg-primary/90`}
+                onClick={handleDownloadAllSegments}
+                disabled={!isFFmpegReady || isProcessing || !currentEditingFile || segments.length === 0}
+              >
                 <Download className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} mr-2`} />
-                Download All Segments
+                {isFFmpegReady ? 'Download All Segments' : 'טוען FFmpeg...'}
               </Button>
-              <Button variant="outline" size={isMobile ? "default" : "lg"} className={`w-full ${isMobile ? 'text-base' : 'text-lg'}`}>
-                <Save className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} mr-2`} />
-                Download Selected Segments
-              </Button>
-              <Button variant="outline" size={isMobile ? "default" : "lg"} className={`w-full ${isMobile ? 'text-base' : 'text-lg'}`}>
+              <Button 
+                variant="outline" 
+                size={isMobile ? "default" : "lg"} 
+                className={`w-full ${isMobile ? 'text-base' : 'text-lg'}`}
+                onClick={handleMergeAndDownload}
+                disabled={!isFFmpegReady || isProcessing || !currentEditingFile || segments.length === 0}
+              >
                 <Layers3 className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} mr-2`} />
                 Merge Segments with Mix
               </Button>
