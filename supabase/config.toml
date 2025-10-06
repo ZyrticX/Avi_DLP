@@ -1,1 +1,4 @@
 project_id = "jdyekwizsviuyklsrsky"
+
+[functions.download-youtube-video]
+verify_jwt = false

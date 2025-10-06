@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFFmpeg, AudioFormat, VideoResolution } from "@/hooks/useFFmpeg";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -191,6 +192,7 @@ const Index = () => {
   const [selectedVideoResolution, setSelectedVideoResolution] = useState<VideoResolution>('1080p');
   const [selectedEffect, setSelectedEffect] = useState<'grayscale' | 'sepia' | 'negative' | 'blur' | 'sharpen'>('grayscale');
   const [cropSettings, setCropSettings] = useState({ width: 1920, height: 1080, x: 0, y: 0 });
+  const [youtubeQuality, setYoutubeQuality] = useState<'best' | '720p' | '480p' | '360p'>('best');
   const playerRef = useRef<HTMLDivElement>(null);
   const localMediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
   const navigate = useNavigate();
@@ -423,8 +425,53 @@ const Index = () => {
     }
   };
 
+  const downloadYouTubeVideo = async (videoId: string): Promise<File | null> => {
+    try {
+      toast({
+        title: "מוריד סרטון מיוטיוב...",
+        description: "זה עשוי לקחת מספר דקות",
+      });
+
+      const { data, error } = await supabase.functions.invoke('download-youtube-video', {
+        body: { videoId, quality: youtubeQuality }
+      });
+
+      if (error) throw error;
+
+      const blob = new Blob([data], { type: 'video/mp4' });
+      const file = new File([blob], `youtube_${videoId}.mp4`, { type: 'video/mp4' });
+
+      toast({
+        title: "הסרטון הורד בהצלחה!",
+        description: "כעת ניתן לערוך אותו",
+      });
+
+      return file;
+    } catch (error) {
+      console.error('Error downloading YouTube video:', error);
+      toast({
+        title: "שגיאה בהורדת הסרטון",
+        description: error.message,
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
+
   const handleDownloadSegment = async (segment: typeof segments[0]) => {
-    if (!currentEditingFile) {
+    let fileToProcess = currentEditingFile;
+
+    // If we have a YouTube video but no file, download it first
+    if (videoId && !currentEditingFile) {
+      const downloadedFile = await downloadYouTubeVideo(videoId);
+      if (!downloadedFile) return;
+      
+      const url = URL.createObjectURL(downloadedFile);
+      fileToProcess = { file: downloadedFile, url, type: 'video' };
+      setCurrentEditingFile(fileToProcess);
+    }
+
+    if (!fileToProcess) {
       toast({
         title: "אין קובץ לעיבוד",
         description: "אנא העלה קובץ תחילה",
@@ -433,11 +480,11 @@ const Index = () => {
       return;
     }
 
-    const isAudio = cuttingMode === 'audio' || currentEditingFile.type === 'audio';
+    const isAudio = cuttingMode === 'audio' || fileToProcess.type === 'audio';
     const format = isAudio ? selectedAudioFormat : 'mp4';
     
     const blob = await cutVideo(
-      currentEditingFile.file,
+      fileToProcess.file,
       segment,
       format,
       isAudio ? undefined : selectedVideoResolution
@@ -450,7 +497,19 @@ const Index = () => {
   };
 
   const handleDownloadAllSegments = async () => {
-    if (!currentEditingFile || segments.length === 0) {
+    let fileToProcess = currentEditingFile;
+
+    // If we have a YouTube video but no file, download it first
+    if (videoId && !currentEditingFile) {
+      const downloadedFile = await downloadYouTubeVideo(videoId);
+      if (!downloadedFile) return;
+      
+      const url = URL.createObjectURL(downloadedFile);
+      fileToProcess = { file: downloadedFile, url, type: 'video' };
+      setCurrentEditingFile(fileToProcess);
+    }
+
+    if (!fileToProcess || segments.length === 0) {
       toast({
         title: "אין מקטעים להורדה",
         description: "אנא צור מקטעים תחילה",
@@ -465,7 +524,19 @@ const Index = () => {
   };
 
   const handleMergeAndDownload = async () => {
-    if (!currentEditingFile || segments.length === 0) {
+    let fileToProcess = currentEditingFile;
+
+    // If we have a YouTube video but no file, download it first
+    if (videoId && !currentEditingFile) {
+      const downloadedFile = await downloadYouTubeVideo(videoId);
+      if (!downloadedFile) return;
+      
+      const url = URL.createObjectURL(downloadedFile);
+      fileToProcess = { file: downloadedFile, url, type: 'video' };
+      setCurrentEditingFile(fileToProcess);
+    }
+
+    if (!fileToProcess || segments.length === 0) {
       toast({
         title: "אין מקטעים למיזוג",
         description: "אנא צור מקטעים תחילה",
@@ -474,11 +545,11 @@ const Index = () => {
       return;
     }
 
-    const isAudio = cuttingMode === 'audio' || currentEditingFile.type === 'audio';
+    const isAudio = cuttingMode === 'audio' || fileToProcess.type === 'audio';
     const format = isAudio ? selectedAudioFormat : 'mp4';
 
     const blob = await mergeSegments(
-      currentEditingFile.file,
+      fileToProcess.file,
       segments,
       format,
       fadeInDuration[0],
@@ -492,7 +563,19 @@ const Index = () => {
   };
 
   const handleExtractAudio = async () => {
-    if (!currentEditingFile) {
+    let fileToProcess = currentEditingFile;
+
+    // If we have a YouTube video but no file, download it first
+    if (videoId && !currentEditingFile) {
+      const downloadedFile = await downloadYouTubeVideo(videoId);
+      if (!downloadedFile) return;
+      
+      const url = URL.createObjectURL(downloadedFile);
+      fileToProcess = { file: downloadedFile, url, type: 'video' };
+      setCurrentEditingFile(fileToProcess);
+    }
+
+    if (!fileToProcess) {
       toast({
         title: "אין קובץ לעיבוד",
         description: "אנא העלה קובץ וידאו תחילה",
@@ -506,7 +589,7 @@ const Index = () => {
       description: "זה עשוי לקחת מספר שניות",
     });
 
-    const blob = await extractAudio(currentEditingFile.file, selectedAudioFormat, '320k');
+    const blob = await extractAudio(fileToProcess.file, selectedAudioFormat, '320k');
     if (blob) {
       downloadBlob(blob, `audio.${selectedAudioFormat}`);
       toast({
@@ -517,7 +600,19 @@ const Index = () => {
   };
 
   const handleNormalizeAudio = async () => {
-    if (!currentEditingFile) {
+    let fileToProcess = currentEditingFile;
+
+    // If we have a YouTube video but no file, download it first
+    if (videoId && !currentEditingFile) {
+      const downloadedFile = await downloadYouTubeVideo(videoId);
+      if (!downloadedFile) return;
+      
+      const url = URL.createObjectURL(downloadedFile);
+      fileToProcess = { file: downloadedFile, url, type: 'video' };
+      setCurrentEditingFile(fileToProcess);
+    }
+
+    if (!fileToProcess) {
       toast({
         title: "אין קובץ לעיבוד",
         description: "אנא העלה קובץ תחילה",
@@ -531,7 +626,7 @@ const Index = () => {
       description: "זה עשוי לקחת מספר שניות",
     });
 
-    const blob = await normalizeAudio(currentEditingFile.file, selectedAudioFormat);
+    const blob = await normalizeAudio(fileToProcess.file, selectedAudioFormat);
     if (blob) {
       downloadBlob(blob, `normalized.${selectedAudioFormat}`);
       toast({
@@ -542,7 +637,19 @@ const Index = () => {
   };
 
   const handleRemoveVocals = async () => {
-    if (!currentEditingFile) {
+    let fileToProcess = currentEditingFile;
+
+    // If we have a YouTube video but no file, download it first
+    if (videoId && !currentEditingFile) {
+      const downloadedFile = await downloadYouTubeVideo(videoId);
+      if (!downloadedFile) return;
+      
+      const url = URL.createObjectURL(downloadedFile);
+      fileToProcess = { file: downloadedFile, url, type: 'video' };
+      setCurrentEditingFile(fileToProcess);
+    }
+
+    if (!fileToProcess) {
       toast({
         title: "אין קובץ לעיבוד",
         description: "אנא העלה קובץ אודיו תחילה",
@@ -556,7 +663,7 @@ const Index = () => {
       description: "זה עשוי לקחת זמן רב",
     });
 
-    const blob = await removeVocals(currentEditingFile.file);
+    const blob = await removeVocals(fileToProcess.file);
     if (blob) {
       downloadBlob(blob, `instrumental.mp3`);
       toast({
@@ -567,7 +674,19 @@ const Index = () => {
   };
 
   const handleCropVideo = async () => {
-    if (!currentEditingFile || currentEditingFile.type !== 'video') {
+    let fileToProcess = currentEditingFile;
+
+    // If we have a YouTube video but no file, download it first
+    if (videoId && !currentEditingFile) {
+      const downloadedFile = await downloadYouTubeVideo(videoId);
+      if (!downloadedFile) return;
+      
+      const url = URL.createObjectURL(downloadedFile);
+      fileToProcess = { file: downloadedFile, url, type: 'video' };
+      setCurrentEditingFile(fileToProcess);
+    }
+
+    if (!fileToProcess || fileToProcess.type !== 'video') {
       toast({
         title: "אין קובץ וידאו",
         description: "אנא העלה קובץ וידאו תחילה",
@@ -582,7 +701,7 @@ const Index = () => {
     });
 
     const blob = await cropVideo(
-      currentEditingFile.file,
+      fileToProcess.file,
       cropSettings.width,
       cropSettings.height,
       cropSettings.x,
@@ -599,7 +718,19 @@ const Index = () => {
   };
 
   const handleApplyEffect = async () => {
-    if (!currentEditingFile || currentEditingFile.type !== 'video') {
+    let fileToProcess = currentEditingFile;
+
+    // If we have a YouTube video but no file, download it first
+    if (videoId && !currentEditingFile) {
+      const downloadedFile = await downloadYouTubeVideo(videoId);
+      if (!downloadedFile) return;
+      
+      const url = URL.createObjectURL(downloadedFile);
+      fileToProcess = { file: downloadedFile, url, type: 'video' };
+      setCurrentEditingFile(fileToProcess);
+    }
+
+    if (!fileToProcess || fileToProcess.type !== 'video') {
       toast({
         title: "אין קובץ וידאו",
         description: "אנא העלה קובץ וידאו תחילה",
@@ -613,7 +744,7 @@ const Index = () => {
       description: "זה עשוי לקחת מספר שניות",
     });
 
-    const blob = await applyVideoEffect(currentEditingFile.file, selectedEffect);
+    const blob = await applyVideoEffect(fileToProcess.file, selectedEffect);
     if (blob) {
       downloadBlob(blob, `${selectedEffect}.mp4`);
       toast({
@@ -1666,6 +1797,39 @@ const Index = () => {
                     onClick={() => setSelectedVideoResolution('8k')}
                   >
                     8K
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <label className={`${isMobile ? 'text-base' : 'text-lg'} font-medium`}>YouTube Download Quality</label>
+                <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-4'} gap-2`}>
+                  <Button 
+                    variant={youtubeQuality === '360p' ? 'default' : 'outline'} 
+                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
+                    onClick={() => setYoutubeQuality('360p')}
+                  >
+                    360p
+                  </Button>
+                  <Button 
+                    variant={youtubeQuality === '480p' ? 'default' : 'outline'} 
+                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
+                    onClick={() => setYoutubeQuality('480p')}
+                  >
+                    480p
+                  </Button>
+                  <Button 
+                    variant={youtubeQuality === '720p' ? 'default' : 'outline'} 
+                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
+                    onClick={() => setYoutubeQuality('720p')}
+                  >
+                    720p
+                  </Button>
+                  <Button 
+                    variant={youtubeQuality === 'best' ? 'default' : 'outline'} 
+                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
+                    onClick={() => setYoutubeQuality('best')}
+                  >
+                    Best
                   </Button>
                 </div>
               </div>
