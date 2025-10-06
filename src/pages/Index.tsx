@@ -233,6 +233,44 @@ const Index = () => {
     };
   }, []);
 
+  // Create YouTube player when videoId changes
+  useEffect(() => {
+    if (!videoId || player || !playerRef.current) return;
+    
+    // Wait a bit for DOM to be ready
+    const timer = setTimeout(() => {
+      if (!playerRef.current) {
+        console.error('Player container not found after timeout');
+        return;
+      }
+
+      const newPlayer = new (window as any).YT.Player('youtube-player', {
+        height: '100%',
+        width: '100%',
+        videoId: videoId,
+        playerVars: {
+          controls: 1,
+          modestbranding: 1,
+        },
+        events: {
+          onReady: (event: any) => {
+            setPlayer(event.target);
+            const duration = event.target.getDuration();
+            setVideoDuration(duration);
+            setEndTime([duration]);
+            setStartTime([0]);
+            setCurrentTime([0]);
+          },
+          onStateChange: (event: any) => {
+            setIsPlaying(event.data === 1);
+          },
+        },
+      });
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [videoId, player]);
+
   // Update current time from player
   useEffect(() => {
     if (!player) return;
@@ -276,35 +314,6 @@ const Index = () => {
 
     if (player) {
       player.loadVideoById(id);
-    } else {
-      // Check if element exists before creating player
-      if (!playerRef.current) {
-        console.error('Player container not found');
-        return;
-      }
-      
-      const newPlayer = new (window as any).YT.Player('youtube-player', {
-        height: '100%',
-        width: '100%',
-        videoId: id,
-        playerVars: {
-          controls: 1,
-          modestbranding: 1,
-        },
-        events: {
-          onReady: (event: any) => {
-            setPlayer(event.target);
-            const duration = event.target.getDuration();
-            setVideoDuration(duration);
-            setEndTime([duration]);
-            setStartTime([0]);
-            setCurrentTime([0]);
-          },
-          onStateChange: (event: any) => {
-            setIsPlaying(event.data === 1);
-          },
-        },
-      });
     }
     
     // Scroll to player
