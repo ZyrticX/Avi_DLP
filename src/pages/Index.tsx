@@ -193,6 +193,9 @@ const Index = () => {
   const [selectedEffect, setSelectedEffect] = useState<'grayscale' | 'sepia' | 'negative' | 'blur' | 'sharpen'>('grayscale');
   const [cropSettings, setCropSettings] = useState({ width: 1920, height: 1080, x: 0, y: 0 });
   const [youtubeQuality, setYoutubeQuality] = useState<'best' | '720p' | '480p' | '360p'>('best');
+  const [processedBlob, setProcessedBlob] = useState<Blob | null>(null);
+  const [showContinueDialog, setShowContinueDialog] = useState(false);
+  const [processedFilename, setProcessedFilename] = useState<string>("");
   const playerRef = useRef<HTMLDivElement>(null);
   const localMediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
   const navigate = useNavigate();
@@ -492,7 +495,10 @@ const Index = () => {
 
     if (blob) {
       const extension = isAudio ? selectedAudioFormat : 'mp4';
-      downloadBlob(blob, `${segment.title || 'segment'}.${extension}`);
+      const filename = `${segment.title || 'segment'}.${extension}`;
+      setProcessedBlob(blob);
+      setProcessedFilename(filename);
+      setShowContinueDialog(true);
     }
   };
 
@@ -558,7 +564,10 @@ const Index = () => {
 
     if (blob) {
       const extension = isAudio ? selectedAudioFormat : 'mp4';
-      downloadBlob(blob, `merged_${Date.now()}.${extension}`);
+      const filename = `merged_${Date.now()}.${extension}`;
+      setProcessedBlob(blob);
+      setProcessedFilename(filename);
+      setShowContinueDialog(true);
     }
   };
 
@@ -591,7 +600,10 @@ const Index = () => {
 
     const blob = await extractAudio(fileToProcess.file, selectedAudioFormat, '320k');
     if (blob) {
-      downloadBlob(blob, `audio.${selectedAudioFormat}`);
+      const filename = `audio.${selectedAudioFormat}`;
+      setProcessedBlob(blob);
+      setProcessedFilename(filename);
+      setShowContinueDialog(true);
       toast({
         title: "הצלחה!",
         description: "האודיו הופק בהצלחה",
@@ -628,7 +640,10 @@ const Index = () => {
 
     const blob = await normalizeAudio(fileToProcess.file, selectedAudioFormat);
     if (blob) {
-      downloadBlob(blob, `normalized.${selectedAudioFormat}`);
+      const filename = `normalized.${selectedAudioFormat}`;
+      setProcessedBlob(blob);
+      setProcessedFilename(filename);
+      setShowContinueDialog(true);
       toast({
         title: "הצלחה!",
         description: "האודיו נורמל בהצלחה",
@@ -665,7 +680,10 @@ const Index = () => {
 
     const blob = await removeVocals(fileToProcess.file);
     if (blob) {
-      downloadBlob(blob, `instrumental.mp3`);
+      const filename = `instrumental.mp3`;
+      setProcessedBlob(blob);
+      setProcessedFilename(filename);
+      setShowContinueDialog(true);
       toast({
         title: "הצלחה!",
         description: "גרסה אינסטרומנטלית נוצרה",
@@ -709,7 +727,10 @@ const Index = () => {
     );
     
     if (blob) {
-      downloadBlob(blob, `cropped.mp4`);
+      const filename = `cropped.mp4`;
+      setProcessedBlob(blob);
+      setProcessedFilename(filename);
+      setShowContinueDialog(true);
       toast({
         title: "הצלחה!",
         description: "הוידאו נחתך בהצלחה",
@@ -746,12 +767,40 @@ const Index = () => {
 
     const blob = await applyVideoEffect(fileToProcess.file, selectedEffect);
     if (blob) {
-      downloadBlob(blob, `${selectedEffect}.mp4`);
+      const filename = `${selectedEffect}.mp4`;
+      setProcessedBlob(blob);
+      setProcessedFilename(filename);
+      setShowContinueDialog(true);
       toast({
         title: "הצלחה!",
         description: `אפקט ${selectedEffect} הוחל בהצלחה`,
       });
     }
+  };
+
+  const continueEditingProcessed = () => {
+    if (!processedBlob) return;
+    
+    // המרת Blob ל-File
+    const file = new File([processedBlob], processedFilename, { 
+      type: processedBlob.type 
+    });
+    
+    // טעינת הקובץ המעובד כקובץ חדש
+    handleEditFile(file);
+    
+    // איפוס
+    setSegments([]);
+    setProcessedBlob(null);
+    setShowContinueDialog(false);
+  };
+
+  const downloadAndFinish = () => {
+    if (!processedBlob) return;
+    
+    downloadBlob(processedBlob, processedFilename);
+    setProcessedBlob(null);
+    setShowContinueDialog(false);
   };
 
   const handlePlatformConnect = (platformName: string) => {
@@ -2301,6 +2350,47 @@ const Index = () => {
         </Card>
 
       </div>
+
+      {/* Dialog להמשך עריכה או הורדה */}
+      {showContinueDialog && (
+        <Dialog open={showContinueDialog} onOpenChange={setShowContinueDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-2xl flex items-center gap-3">
+                <Sparkles className="w-6 h-6 text-primary" />
+                העיבוד הושלם בהצלחה!
+              </DialogTitle>
+              <DialogDescription>
+                הקובץ {processedFilename} מוכן. האם ברצונך להוריד אותו או להמשיך לערוך?
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-3 mt-4">
+              <Button
+                onClick={continueEditingProcessed}
+                className="w-full text-lg py-6 bg-primary hover:bg-primary/90"
+                size="lg"
+              >
+                <Edit3 className="w-5 h-5 mr-2" />
+                המשך עריכה
+              </Button>
+              <Button
+                onClick={downloadAndFinish}
+                variant="outline"
+                className="w-full text-lg py-6"
+                size="lg"
+              >
+                <Download className="w-5 h-5 mr-2" />
+                הורד והסתיים
+              </Button>
+            </div>
+            
+            <div className="mt-4 p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+              <p>💡 טיפ: אם תבחר "המשך עריכה", תוכל להוסיף עוד אפקטים או לחתוך את הקובץ המעובד.</p>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Dialog להצגת תוכן פלטפורמה */}
       {showPlatformDialog && selectedPlatform && connectedPlatforms[selectedPlatform] && (
