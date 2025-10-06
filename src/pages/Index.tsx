@@ -277,7 +277,13 @@ const Index = () => {
     if (player) {
       player.loadVideoById(id);
     } else {
-      const newPlayer = new (window as any).YT.Player(playerRef.current, {
+      // Check if element exists before creating player
+      if (!playerRef.current) {
+        console.error('Player container not found');
+        return;
+      }
+      
+      const newPlayer = new (window as any).YT.Player('youtube-player', {
         height: '100%',
         width: '100%',
         videoId: id,
@@ -1447,7 +1453,7 @@ const Index = () => {
                     </div>
                   )
                 ) : videoId ? (
-                  <div ref={playerRef} className="w-full h-full"></div>
+                  <div id="youtube-player" ref={playerRef} className="w-full h-full"></div>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <div className="text-center">
