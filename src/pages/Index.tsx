@@ -574,6 +574,20 @@ const Index = () => {
           <Badge className="text-lg px-6 py-3 bg-accent text-accent-foreground">Song Recognition</Badge>
           <Badge className="text-lg px-6 py-3 bg-muted text-muted-foreground">Free</Badge>
         </div>
+        
+        {/* FFmpeg Status Indicator */}
+        {!isFFmpegReady && (
+          <div className="mt-6 flex items-center justify-center gap-3 text-sm">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+            <span className="text-muted-foreground">טוען מנוע עיבוד וידאו...</span>
+          </div>
+        )}
+        {isFFmpegReady && (
+          <div className="mt-6 flex items-center justify-center gap-3 text-sm">
+            <div className="rounded-full h-2 w-2 bg-green-500"></div>
+            <span className="text-green-600">מנוע עיבוד מוכן!</span>
+          </div>
+        )}
       </div>
 
 
