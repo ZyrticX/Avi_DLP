@@ -30,19 +30,13 @@ export const useFFmpeg = () => {
       console.log('Starting FFmpeg load...');
       setIsLoading(true);
       
-      const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm-browser-core';
+      const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
       
       console.log('Loading FFmpeg core files from:', baseURL);
       
-      const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript');
-      const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm');
-      
-      console.log('Core URL loaded:', coreURL);
-      console.log('WASM URL loaded:', wasmURL);
-      
       await ffmpeg.load({
-        coreURL,
-        wasmURL,
+        coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+        wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
       });
 
       ffmpeg.on('progress', ({ progress: prog }) => {
@@ -62,7 +56,7 @@ export const useFFmpeg = () => {
       setIsLoading(false);
       toast({
         title: "שגיאה בטעינת FFmpeg",
-        description: "לא ניתן לטעון את מנוע העיבוד. נסה לרענן את הדף.",
+        description: "נסה לרענן את הדף או בדוק את החיבור לאינטרנט.",
         variant: "destructive",
       });
     }
