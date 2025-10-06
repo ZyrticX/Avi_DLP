@@ -30,8 +30,8 @@ export const useFFmpeg = () => {
       console.log('Starting FFmpeg load...');
       setIsLoading(true);
       
-      // Use ESM for Vite, and jsdelivr CDN
-      const baseURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
+      // Use unpkg CDN with UMD build for better browser compatibility
+      const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
       
       console.log('Loading FFmpeg core files from:', baseURL);
       
