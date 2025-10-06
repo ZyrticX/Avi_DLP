@@ -30,13 +30,19 @@ export const useFFmpeg = () => {
       console.log('Starting FFmpeg load...');
       setIsLoading(true);
       
-      const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+      // Use ESM for Vite, and jsdelivr CDN
+      const baseURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
       
       console.log('Loading FFmpeg core files from:', baseURL);
       
+      // toBlobURL is used to bypass CORS issue
       await ffmpeg.load({
         coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
         wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+      });
+
+      ffmpeg.on('log', ({ message }) => {
+        console.log('[FFmpeg]', message);
       });
 
       ffmpeg.on('progress', ({ progress: prog }) => {
