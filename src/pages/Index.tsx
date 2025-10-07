@@ -1879,8 +1879,8 @@ const Index = () => {
                     try {
                       const blob = await cutVideo(
                         currentEditingFile.file, 
-                        start, 
-                        end, 
+                        { id: 0, start, end, title: 'cut' }, 
+                        'mp4', 
                         selectedVideoResolution
                       );
                       

@@ -147,7 +147,7 @@ export const useFFmpeg = () => {
 
       // Read output file
       const data = await ffmpeg.readFile(outputFileName);
-      const blob = new Blob([data], { 
+      const blob = new Blob([new Uint8Array(data as Uint8Array).buffer], { 
         type: format === 'mp4' ? 'video/mp4' : 
               format === 'webm' ? 'video/webm' :
               `audio/${format}` 
@@ -257,7 +257,7 @@ export const useFFmpeg = () => {
       await ffmpeg.exec(args);
 
       const data = await ffmpeg.readFile(outputFileName);
-      const blob = new Blob([data], { 
+      const blob = new Blob([new Uint8Array(data as Uint8Array).buffer], { 
         type: format === 'mp4' ? 'video/mp4' : `audio/${format}` 
       });
 
@@ -322,7 +322,7 @@ export const useFFmpeg = () => {
       ]);
 
       const data = await ffmpeg.readFile(outputFileName);
-      const blob = new Blob([data], { type: `audio/${format}` });
+      const blob = new Blob([new Uint8Array(data as Uint8Array).buffer], { type: `audio/${format}` });
 
       await ffmpeg.deleteFile(inputFileName);
       await ffmpeg.deleteFile(outputFileName);
@@ -374,7 +374,7 @@ export const useFFmpeg = () => {
       ]);
 
       const data = await ffmpeg.readFile(outputFileName);
-      const blob = new Blob([data], { type: `audio/${format}` });
+      const blob = new Blob([new Uint8Array(data as Uint8Array).buffer], { type: `audio/${format}` });
 
       await ffmpeg.deleteFile(inputFileName);
       await ffmpeg.deleteFile(outputFileName);
@@ -428,7 +428,7 @@ export const useFFmpeg = () => {
       ]);
 
       const data = await ffmpeg.readFile(outputFileName);
-      const blob = new Blob([data], { type: 'video/mp4' });
+      const blob = new Blob([new Uint8Array(data as Uint8Array).buffer], { type: 'video/mp4' });
 
       await ffmpeg.deleteFile(inputFileName);
       await ffmpeg.deleteFile(outputFileName);
@@ -487,7 +487,7 @@ export const useFFmpeg = () => {
       ]);
 
       const data = await ffmpeg.readFile(outputFileName);
-      const blob = new Blob([data], { type: 'video/mp4' });
+      const blob = new Blob([new Uint8Array(data as Uint8Array).buffer], { type: 'video/mp4' });
 
       await ffmpeg.deleteFile(inputFileName);
       await ffmpeg.deleteFile(outputFileName);
@@ -537,7 +537,7 @@ export const useFFmpeg = () => {
       ]);
 
       const data = await ffmpeg.readFile(outputFileName);
-      const blob = new Blob([data], { type: 'audio/mp3' });
+      const blob = new Blob([new Uint8Array(data as Uint8Array).buffer], { type: 'audio/mp3' });
 
       await ffmpeg.deleteFile(inputFileName);
       await ffmpeg.deleteFile(outputFileName);
