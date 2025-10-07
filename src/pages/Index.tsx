@@ -62,7 +62,9 @@ import {
   Wand2,
   Crop,
   Mic,
-  AudioWaveform
+  AudioWaveform,
+  Plus,
+  Minus
 } from "lucide-react";
 
 // Format seconds to HH:MM:SS
@@ -1425,8 +1427,8 @@ const Index = () => {
             </div>
 
             {/* תצוגה מקדימה - נגן YouTube או קובץ מקומי */}
-            <div className={`w-full ${isMobile ? 'max-w-sm' : 'max-w-4xl'} mx-auto mb-8`}>
-              <div className="aspect-video bg-gradient-to-br from-muted to-background rounded-3xl border-2 border-accent/30 overflow-hidden relative">
+            <div className={`w-full ${isMobile ? 'max-w-sm' : 'max-w-5xl'} mx-auto mb-4`}>
+              <div className="aspect-video bg-gradient-to-br from-muted to-background rounded-3xl border-2 border-accent/30 overflow-hidden relative shadow-xl">
                 {currentEditingFile ? (
                   currentEditingFile.type === 'video' ? (
                     <video
@@ -1474,34 +1476,54 @@ const Index = () => {
                 )}
               </div>
               
-              {/* ציר זמן מתקדם עם סמני חיתוך */}
-              <div className="mt-6 space-y-4">
-                {/* ציר הזמן הראשי */}
-                <Slider
-                  value={currentTime}
-                  onValueChange={(val) => {
-                    setCurrentTime(val);
-                    seekTo(val[0]);
-                  }}
-                  max={videoDuration}
-                  step={0.1}
-                  className="w-full"
-                />
-                
-                {/* פס בחירה לחיתוך */}
-                <div className="relative h-8 bg-red-900/30 rounded-lg mt-4">
-                  {/* הפס האדום */}
-                  <div 
-                    className="absolute top-1/2 -translate-y-1/2 h-2 bg-red-800 rounded-full"
-                    style={{
-                      left: `${(startTime[0] / videoDuration) * 100}%`,
-                      right: `${100 - (endTime[0] / videoDuration) * 100}%`
-                    }}
-                  />
-                  
-                  {/* קו התחלה */}
+              {/* ציר זמן מתקדם עם סמני חיתוך ווייבפורם */}
+              <div className="mt-8 space-y-6 bg-black/95 rounded-2xl p-6 border border-accent/20 shadow-2xl">
+                {/* Time markers */}
+                <div className="relative h-6 flex justify-between items-center text-xs text-gray-400 font-mono border-b border-gray-700 pb-2">
+                  {Array.from({ length: Math.ceil(videoDuration / 21) + 1 }, (_, i) => {
+                    const time = i * 21;
+                    if (time > videoDuration) return null;
+                    return (
+                      <div key={i} className="absolute" style={{ left: `${(time / videoDuration) * 100}%` }}>
+                        {Math.floor(time / 60).toString().padStart(2, '0')}:{Math.floor(time % 60).toString().padStart(2, '0')}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Waveform visualization with cut markers */}
+                <div className="relative h-48 bg-gradient-to-b from-gray-900 to-black rounded-xl overflow-hidden border border-gray-700">
+                  {/* Simulated waveform background */}
+                  <div className="absolute inset-0 flex items-center">
+                    <svg className="w-full h-full" preserveAspectRatio="none">
+                      <defs>
+                        <linearGradient id="waveGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" style={{ stopColor: '#10b981', stopOpacity: 0.8 }} />
+                          <stop offset="50%" style={{ stopColor: '#14b8a6', stopOpacity: 0.9 }} />
+                          <stop offset="100%" style={{ stopColor: '#06b6d4', stopOpacity: 0.7 }} />
+                        </linearGradient>
+                      </defs>
+                      {Array.from({ length: 200 }, (_, i) => {
+                        const x = (i / 200) * 100;
+                        const height = 30 + Math.random() * 60 + Math.sin(i / 10) * 20;
+                        return (
+                          <rect
+                            key={i}
+                            x={`${x}%`}
+                            y={`${50 - height / 2}%`}
+                            width="0.4%"
+                            height={`${height}%`}
+                            fill="url(#waveGradient)"
+                            opacity={0.9}
+                          />
+                        );
+                      })}
+                    </svg>
+                  </div>
+
+                  {/* Start marker - Red vertical line */}
                   <div
-                    className="absolute top-0 h-full w-1 bg-blue-500 cursor-grab active:cursor-grabbing shadow-lg"
+                    className="absolute top-0 h-full w-0.5 bg-red-500 cursor-grab active:cursor-grabbing z-10 shadow-lg shadow-red-500/50"
                     style={{ left: `${(startTime[0] / videoDuration) * 100}%` }}
                     draggable
                     onMouseDown={(e) => {
@@ -1546,16 +1568,11 @@ const Index = () => {
                       document.addEventListener('touchmove', handleTouchMove);
                       document.addEventListener('touchend', handleTouchEnd);
                     }}
-                  >
-                    {/* תווית זמן התחלה */}
-                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-blue-500 text-white px-2 py-1 rounded whitespace-nowrap">
-                      {Math.floor(startTime[0] / 60).toString().padStart(2, '0')}:{Math.floor(startTime[0] % 60).toString().padStart(2, '0')}
-                    </div>
-                  </div>
-                  
-                  {/* קו סיום */}
+                  />
+
+                  {/* End marker - Red vertical line */}
                   <div
-                    className="absolute top-0 h-full w-1 bg-blue-500 cursor-grab active:cursor-grabbing shadow-lg"
+                    className="absolute top-0 h-full w-0.5 bg-red-500 cursor-grab active:cursor-grabbing z-10 shadow-lg shadow-red-500/50"
                     style={{ left: `${(endTime[0] / videoDuration) * 100}%` }}
                     draggable
                     onMouseDown={(e) => {
@@ -1600,35 +1617,84 @@ const Index = () => {
                       document.addEventListener('touchmove', handleTouchMove);
                       document.addEventListener('touchend', handleTouchEnd);
                     }}
-                  >
-                    {/* תווית זמן סיום */}
-                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-blue-500 text-white px-2 py-1 rounded whitespace-nowrap">
-                      {Math.floor(endTime[0] / 60).toString().padStart(2, '0')}:{Math.floor(endTime[0] % 60).toString().padStart(2, '0')}
+                  />
+
+                  {/* Current time indicator */}
+                  <div
+                    className="absolute top-0 h-full w-0.5 bg-white/60 z-10"
+                    style={{ left: `${(currentTime[0] / videoDuration) * 100}%` }}
+                  />
+
+                  {/* Zoom controls */}
+                  <div className="absolute top-4 right-4 flex flex-col gap-2">
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="h-10 w-10 rounded-full bg-black/80 border-white/20 hover:bg-white/10"
+                      onClick={() => {
+                        // Zoom in functionality - reduce visible duration
+                        const center = (startTime[0] + endTime[0]) / 2;
+                        const range = endTime[0] - startTime[0];
+                        const newRange = Math.max(10, range * 0.7);
+                        setStartTime([Math.max(0, center - newRange / 2)]);
+                        setEndTime([Math.min(videoDuration, center + newRange / 2)]);
+                      }}
+                    >
+                      <Plus className="h-5 w-5 text-white" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="h-10 w-10 rounded-full bg-black/80 border-white/20 hover:bg-white/10"
+                      onClick={() => {
+                        // Zoom out functionality - increase visible duration
+                        const center = (startTime[0] + endTime[0]) / 2;
+                        const range = endTime[0] - startTime[0];
+                        const newRange = Math.min(videoDuration, range * 1.3);
+                        setStartTime([Math.max(0, center - newRange / 2)]);
+                        setEndTime([Math.min(videoDuration, center + newRange / 2)]);
+                      }}
+                    >
+                      <Minus className="h-5 w-5 text-white" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Time inputs below waveform */}
+                <div className="flex justify-between items-center gap-4 mt-4">
+                  <div className="flex-1">
+                    <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-3 text-center">
+                      <p className="text-white font-mono text-xl font-semibold">
+                        {Math.floor(startTime[0] / 60).toString().padStart(2, '0')}:{Math.floor(startTime[0] % 60).toString().padStart(2, '0')}:{Math.floor((startTime[0] % 1) * 1000).toString().padStart(3, '0')}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">זמן התחלת חיתוך</p>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-3 text-center">
+                      <p className="text-white font-mono text-xl font-semibold">
+                        {Math.floor(endTime[0] / 60).toString().padStart(2, '0')}:{Math.floor(endTime[0] % 60).toString().padStart(2, '0')}:{Math.floor((endTime[0] % 1) * 1000).toString().padStart(3, '0')}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">זמן סיום חיתוך</p>
                     </div>
                   </div>
                 </div>
-                
-                {/* זמנים ומידע על החיתוך */}
-                <div className="bg-background/50 rounded-lg p-3 border border-border/50">
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Start</p>
-                      <p className="font-mono text-sm font-semibold text-green-600">
-                        {Math.floor(startTime[0] / 60).toString().padStart(2, '0')}:{Math.floor(startTime[0] % 60).toString().padStart(2, '0')}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">End</p>
-                      <p className="font-mono text-sm font-semibold text-red-600">
-                        {Math.floor(endTime[0] / 60).toString().padStart(2, '0')}:{Math.floor(endTime[0] % 60).toString().padStart(2, '0')}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Segment Length</p>
-                      <p className="font-mono text-sm font-semibold">
-                        {Math.floor((endTime[0] - startTime[0]) / 60).toString().padStart(2, '0')}:{Math.floor((endTime[0] - startTime[0]) % 60).toString().padStart(2, '0')}
-                      </p>
-                    </div>
+
+                {/* Playback slider */}
+                <div className="relative">
+                  <Slider
+                    value={currentTime}
+                    onValueChange={(val) => {
+                      setCurrentTime(val);
+                      seekTo(val[0]);
+                    }}
+                    max={videoDuration}
+                    step={0.1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-gray-400 font-mono mt-1">
+                    <span>{Math.floor(currentTime[0] / 60).toString().padStart(2, '0')}:{Math.floor(currentTime[0] % 60).toString().padStart(2, '0')}</span>
+                    <span>{Math.floor(videoDuration / 60).toString().padStart(2, '0')}:{Math.floor(videoDuration % 60).toString().padStart(2, '0')}</span>
                   </div>
                 </div>
               </div>
