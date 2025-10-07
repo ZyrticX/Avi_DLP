@@ -198,6 +198,9 @@ const Index = () => {
   const [processedBlob, setProcessedBlob] = useState<Blob | null>(null);
   const [showContinueDialog, setShowContinueDialog] = useState(false);
   const [processedFilename, setProcessedFilename] = useState<string>("");
+  const [jumpTimeSeconds, setJumpTimeSeconds] = useState<number>(10);
+  const [showJumpTimeDialog, setShowJumpTimeDialog] = useState<boolean>(false);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const playerRef = useRef<HTMLDivElement>(null);
   const localMediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
   const navigate = useNavigate();
@@ -325,11 +328,19 @@ const Index = () => {
   };
 
   const togglePlayPause = () => {
-    if (!player) return;
-    if (isPlaying) {
-      player.pauseVideo();
-    } else {
-      player.playVideo();
+    if (currentEditingFile && localMediaRef.current) {
+      const media = localMediaRef.current as HTMLVideoElement | HTMLAudioElement;
+      if (isPlaying) {
+        media.pause();
+      } else {
+        media.play();
+      }
+    } else if (player) {
+      if (isPlaying) {
+        player.pauseVideo();
+      } else {
+        player.playVideo();
+      }
     }
   };
 
@@ -1440,6 +1451,13 @@ const Index = () => {
                         const time = (e.target as HTMLVideoElement).currentTime;
                         setCurrentTime([time]);
                       }}
+                      onLoadedMetadata={(e) => {
+                        const duration = (e.target as HTMLVideoElement).duration;
+                        setVideoDuration(duration);
+                        setEndTime([duration]);
+                        setStartTime([0]);
+                        setCurrentTime([0]);
+                      }}
                       onPlay={() => setIsPlaying(true)}
                       onPause={() => setIsPlaying(false)}
                     />
@@ -1456,6 +1474,13 @@ const Index = () => {
                           onTimeUpdate={(e) => {
                             const time = (e.target as HTMLAudioElement).currentTime;
                             setCurrentTime([time]);
+                          }}
+                          onLoadedMetadata={(e) => {
+                            const duration = (e.target as HTMLAudioElement).duration;
+                            setVideoDuration(duration);
+                            setEndTime([duration]);
+                            setStartTime([0]);
+                            setCurrentTime([0]);
                           }}
                           onPlay={() => setIsPlaying(true)}
                           onPause={() => setIsPlaying(false)}
@@ -1478,21 +1503,40 @@ const Index = () => {
               
               {/* ציר זמן מתקדם עם סמני חיתוך ווייבפורם */}
               <div className="mt-8 space-y-6 bg-black/95 rounded-2xl p-6 border border-accent/20 shadow-2xl">
-                {/* Time markers */}
-                <div className="relative h-6 flex justify-between items-center text-xs text-gray-400 font-mono border-b border-gray-700 pb-2">
-                  {Array.from({ length: Math.ceil(videoDuration / 21) + 1 }, (_, i) => {
-                    const time = i * 21;
-                    if (time > videoDuration) return null;
-                    return (
-                      <div key={i} className="absolute" style={{ left: `${(time / videoDuration) * 100}%` }}>
-                        {Math.floor(time / 60).toString().padStart(2, '0')}:{Math.floor(time % 60).toString().padStart(2, '0')}
-                      </div>
-                    );
-                  })}
-                </div>
-
                 {/* Waveform visualization with cut markers */}
                 <div className="relative h-48 bg-gradient-to-b from-gray-900 to-black rounded-xl overflow-hidden border border-gray-700">
+                  {/* Zoom controls - positioned top right */}
+                  <div className="absolute top-2 right-2 flex gap-2 z-20">
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="h-8 w-8 rounded-full bg-black/80 border-white/20 hover:bg-white/10"
+                      onClick={() => {
+                        const center = (startTime[0] + endTime[0]) / 2;
+                        const range = endTime[0] - startTime[0];
+                        const newRange = Math.max(10, range * 0.7);
+                        setStartTime([Math.max(0, center - newRange / 2)]);
+                        setEndTime([Math.min(videoDuration, center + newRange / 2)]);
+                      }}
+                    >
+                      <Plus className="h-4 w-4 text-white" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="h-8 w-8 rounded-full bg-black/80 border-white/20 hover:bg-white/10"
+                      onClick={() => {
+                        const center = (startTime[0] + endTime[0]) / 2;
+                        const range = endTime[0] - startTime[0];
+                        const newRange = Math.min(videoDuration, range * 1.3);
+                        setStartTime([Math.max(0, center - newRange / 2)]);
+                        setEndTime([Math.min(videoDuration, center + newRange / 2)]);
+                      }}
+                    >
+                      <Minus className="h-4 w-4 text-white" />
+                    </Button>
+                  </div>
+
                   {/* Simulated waveform background */}
                   <div className="absolute inset-0 flex items-center">
                     <svg className="w-full h-full" preserveAspectRatio="none">
@@ -1624,40 +1668,6 @@ const Index = () => {
                     className="absolute top-0 h-full w-0.5 bg-white/60 z-10"
                     style={{ left: `${(currentTime[0] / videoDuration) * 100}%` }}
                   />
-
-                  {/* Zoom controls */}
-                  <div className="absolute top-4 right-4 flex flex-col gap-2">
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="h-10 w-10 rounded-full bg-black/80 border-white/20 hover:bg-white/10"
-                      onClick={() => {
-                        // Zoom in functionality - reduce visible duration
-                        const center = (startTime[0] + endTime[0]) / 2;
-                        const range = endTime[0] - startTime[0];
-                        const newRange = Math.max(10, range * 0.7);
-                        setStartTime([Math.max(0, center - newRange / 2)]);
-                        setEndTime([Math.min(videoDuration, center + newRange / 2)]);
-                      }}
-                    >
-                      <Plus className="h-5 w-5 text-white" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="h-10 w-10 rounded-full bg-black/80 border-white/20 hover:bg-white/10"
-                      onClick={() => {
-                        // Zoom out functionality - increase visible duration
-                        const center = (startTime[0] + endTime[0]) / 2;
-                        const range = endTime[0] - startTime[0];
-                        const newRange = Math.min(videoDuration, range * 1.3);
-                        setStartTime([Math.max(0, center - newRange / 2)]);
-                        setEndTime([Math.min(videoDuration, center + newRange / 2)]);
-                      }}
-                    >
-                      <Minus className="h-5 w-5 text-white" />
-                    </Button>
-                  </div>
                 </div>
 
                 {/* Time inputs below waveform */}
@@ -1707,17 +1717,53 @@ const Index = () => {
                   variant="outline" 
                   size={isMobile ? "default" : "lg"} 
                   className={`${isMobile ? 'text-sm px-3' : 'text-lg px-6'}`}
-                  onClick={() => seekTo(Math.max(0, currentTime[0] - 10))}
-                  disabled={!player}
+                  onClick={() => {
+                    if (currentEditingFile && localMediaRef.current) {
+                      const newTime = Math.max(0, currentTime[0] - jumpTimeSeconds);
+                      (localMediaRef.current as any).currentTime = newTime;
+                      setCurrentTime([newTime]);
+                    } else if (player) {
+                      seekTo(Math.max(0, currentTime[0] - jumpTimeSeconds));
+                    }
+                  }}
+                  onMouseDown={() => {
+                    longPressTimer.current = setTimeout(() => {
+                      setShowJumpTimeDialog(true);
+                    }, 500);
+                  }}
+                  onMouseUp={() => {
+                    if (longPressTimer.current) {
+                      clearTimeout(longPressTimer.current);
+                      longPressTimer.current = null;
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    if (longPressTimer.current) {
+                      clearTimeout(longPressTimer.current);
+                      longPressTimer.current = null;
+                    }
+                  }}
+                  onTouchStart={() => {
+                    longPressTimer.current = setTimeout(() => {
+                      setShowJumpTimeDialog(true);
+                    }, 500);
+                  }}
+                  onTouchEnd={() => {
+                    if (longPressTimer.current) {
+                      clearTimeout(longPressTimer.current);
+                      longPressTimer.current = null;
+                    }
+                  }}
+                  disabled={!player && !currentEditingFile}
                 >
                   <SkipBack className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1 md:mr-2`} />
-                  -10s
+                  -{jumpTimeSeconds}s
                 </Button>
                 <Button 
                   size={isMobile ? "default" : "default"}
                   onClick={togglePlayPause}
                   className={`${isMobile ? 'text-base px-4' : 'text-lg px-6'} bg-primary hover:bg-primary/90`}
-                  disabled={!player}
+                  disabled={!player && !currentEditingFile}
                 >
                   {isPlaying ? <Pause className={`${isMobile ? 'w-5 h-5' : 'w-5 h-5'} mr-1 md:mr-2`} /> : <Play className={`${isMobile ? 'w-5 h-5' : 'w-5 h-5'} mr-1 md:mr-2`} />}
                   {isPlaying ? 'Stop' : 'Play'}
@@ -1726,11 +1772,47 @@ const Index = () => {
                   variant="outline" 
                   size={isMobile ? "default" : "lg"} 
                   className={`${isMobile ? 'text-sm px-3' : 'text-lg px-6'}`}
-                  onClick={() => seekTo(Math.min(videoDuration, currentTime[0] + 10))}
-                  disabled={!player}
+                  onClick={() => {
+                    if (currentEditingFile && localMediaRef.current) {
+                      const newTime = Math.min(videoDuration, currentTime[0] + jumpTimeSeconds);
+                      (localMediaRef.current as any).currentTime = newTime;
+                      setCurrentTime([newTime]);
+                    } else if (player) {
+                      seekTo(Math.min(videoDuration, currentTime[0] + jumpTimeSeconds));
+                    }
+                  }}
+                  onMouseDown={() => {
+                    longPressTimer.current = setTimeout(() => {
+                      setShowJumpTimeDialog(true);
+                    }, 500);
+                  }}
+                  onMouseUp={() => {
+                    if (longPressTimer.current) {
+                      clearTimeout(longPressTimer.current);
+                      longPressTimer.current = null;
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    if (longPressTimer.current) {
+                      clearTimeout(longPressTimer.current);
+                      longPressTimer.current = null;
+                    }
+                  }}
+                  onTouchStart={() => {
+                    longPressTimer.current = setTimeout(() => {
+                      setShowJumpTimeDialog(true);
+                    }, 500);
+                  }}
+                  onTouchEnd={() => {
+                    if (longPressTimer.current) {
+                      clearTimeout(longPressTimer.current);
+                      longPressTimer.current = null;
+                    }
+                  }}
+                  disabled={!player && !currentEditingFile}
                 >
                   <SkipForward className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1 md:mr-2`} />
-                  +10s
+                  +{jumpTimeSeconds}s
                 </Button>
               </div>
               
@@ -1741,7 +1823,7 @@ const Index = () => {
                   size={isMobile ? "sm" : "lg"} 
                   className={`rounded-full ${isMobile ? 'px-3 py-2 text-sm' : 'px-8 py-3'}`}
                   onClick={() => setStartTime([currentTime[0]])}
-                  disabled={!player}
+                  disabled={!player && !currentEditingFile}
                 >
                   <ChevronLeft className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1`} />
                   Start
@@ -1750,7 +1832,7 @@ const Index = () => {
                   className={`bg-accent hover:bg-accent/90 rounded-full ${isMobile ? 'px-4 py-2 text-sm' : 'px-8 py-3'}`} 
                   size={isMobile ? "sm" : "lg"}
                   onClick={addSegment}
-                  disabled={!player}
+                  disabled={!player && !currentEditingFile}
                 >
                   <Scissors className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1`} />
                   Cut
@@ -1760,10 +1842,68 @@ const Index = () => {
                   size={isMobile ? "sm" : "lg"} 
                   className={`rounded-full ${isMobile ? 'px-3 py-2 text-sm' : 'px-8 py-3'}`}
                   onClick={() => setEndTime([currentTime[0]])}
-                  disabled={!player}
+                  disabled={!player && !currentEditingFile}
                 >
                   <ChevronRight className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1`} />
                   End
+                </Button>
+              </div>
+
+              {/* כפתור שמירה/הורדה של מקטע חתוך */}
+              <div className="flex justify-center mb-4">
+                <Button 
+                  className={`bg-primary hover:bg-primary/90 rounded-full ${isMobile ? 'px-4 py-2 text-sm' : 'px-8 py-3'}`} 
+                  size={isMobile ? "sm" : "lg"}
+                  onClick={async () => {
+                    if (!currentEditingFile) {
+                      toast({
+                        title: "אין קובץ",
+                        description: "יש להעלות קובץ תחילה",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    
+                    const start = startTime[0];
+                    const end = endTime[0];
+                    
+                    if (end <= start) {
+                      toast({
+                        title: "טעות בזמנים",
+                        description: "זמן הסיום חייב להיות גדול מזמן ההתחלה",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+
+                    try {
+                      const blob = await cutVideo(
+                        currentEditingFile.file, 
+                        start, 
+                        end, 
+                        selectedVideoResolution
+                      );
+                      
+                      if (blob) {
+                        const extension = currentEditingFile.file.name.split('.').pop() || 'mp4';
+                        downloadBlob(blob, `cut_${start.toFixed(0)}-${end.toFixed(0)}.${extension}`);
+                        toast({
+                          title: "הורדה הושלמה",
+                          description: "המקטע החתוך הורד בהצלחה"
+                        });
+                      }
+                    } catch (error) {
+                      toast({
+                        title: "שגיאה",
+                        description: "אירעה שגיאה בחיתוך הקובץ",
+                        variant: "destructive"
+                      });
+                    }
+                  }}
+                  disabled={!currentEditingFile || isProcessing}
+                >
+                  <Download className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-2`} />
+                  {isProcessing ? `${progress.toFixed(0)}%` : 'שמור מקטע'}
                 </Button>
               </div>
 
@@ -2543,6 +2683,71 @@ const Index = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Dialog להגדרת זמן קפיצה */}
+      <Dialog open={showJumpTimeDialog} onOpenChange={setShowJumpTimeDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl flex items-center gap-3">
+              <Clock className="w-6 h-6 text-primary" />
+              הגדרת זמן קפיצה
+            </DialogTitle>
+            <DialogDescription>
+              בחר כמה שניות לדלג כשלוחצים על כפתורי +/- (0.5s עד 60s)
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 mt-4">
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">זמן קפיצה</span>
+                <span className="text-2xl font-bold text-primary">{jumpTimeSeconds}s</span>
+              </div>
+              <Slider
+                value={[jumpTimeSeconds]}
+                onValueChange={(val) => setJumpTimeSeconds(val[0])}
+                min={0.5}
+                max={60}
+                step={0.5}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>0.5s</span>
+                <span>60s</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setJumpTimeSeconds(5)}
+              >
+                5s
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setJumpTimeSeconds(10)}
+              >
+                10s
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setJumpTimeSeconds(30)}
+              >
+                30s
+              </Button>
+            </div>
+
+            <Button
+              onClick={() => setShowJumpTimeDialog(false)}
+              className="w-full"
+            >
+              <Check className="w-4 h-4 mr-2" />
+              שמור
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
