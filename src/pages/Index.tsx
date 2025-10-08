@@ -108,23 +108,40 @@ const SortableItem = ({ segment, index, onEdit, onPlay, onDelete }: {
     <div 
       ref={setNodeRef} 
       style={style} 
-      className="flex items-center gap-4 p-4 bg-background/50 rounded-lg border border-secondary/20"
+      className="p-4 bg-background/50 rounded-lg border border-secondary/20 space-y-3"
     >
-      <div 
-        {...attributes} 
-        {...listeners}
-        className="cursor-grab active:cursor-grabbing p-1"
-      >
-        <GripVertical className="w-5 h-5 text-muted-foreground" />
+      {/* Header with drag handle and number */}
+      <div className="flex items-center gap-4">
+        <div 
+          {...attributes} 
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing p-1"
+        >
+          <GripVertical className="w-5 h-5 text-muted-foreground" />
+        </div>
+        <span className="text-2xl font-bold text-secondary">{index + 1}</span>
+        <div className="flex-1 text-muted-foreground">
+          {formatTime(segment.start)} - {formatTime(segment.end)}
+        </div>
+        <Button variant="outline" size="sm" onClick={() => onPlay(segment.id)}>
+          <Play className="w-4 h-4 mr-1" />
+          Play
+        </Button>
+        <Button variant="destructive" size="sm" onClick={() => onDelete(segment.id)}>
+          <X className="w-4 h-4 mr-1" />
+          Delete
+        </Button>
       </div>
-      <span className="text-2xl font-bold text-secondary">{index + 1}</span>
-      <div className="flex-1">
+      
+      {/* Full width title input */}
+      <div className="w-full">
         {isEditing ? (
           <div className="space-y-2">
             <Input
               value={editTitle}
               onChange={(e) => setEditTitle(e.target.value)}
-              className="text-lg"
+              className="w-full text-lg h-12"
+              placeholder="שם הסגמנט"
               onKeyPress={(e) => e.key === 'Enter' && handleSave()}
             />
             <div className="flex gap-2">
@@ -138,24 +155,14 @@ const SortableItem = ({ segment, index, onEdit, onPlay, onDelete }: {
             </div>
           </div>
         ) : (
-          <>
-            <h3 className="text-lg font-semibold">{segment.title || `Segment ${index + 1}`}</h3>
-            <p className="text-muted-foreground">{formatTime(segment.start)} - {formatTime(segment.end)}</p>
-          </>
+          <div 
+            className="w-full p-3 bg-background border border-border rounded-md cursor-text hover:bg-accent/10 transition-colors"
+            onClick={() => setIsEditing(true)}
+          >
+            <p className="text-lg font-medium">{segment.title || `Segment ${index + 1}`}</p>
+          </div>
         )}
       </div>
-      <Button variant="outline" size="sm" onClick={() => setIsEditing(!isEditing)}>
-        <Edit3 className="w-4 h-4 mr-1" />
-        Edit
-      </Button>
-      <Button variant="outline" size="sm" onClick={() => onPlay(segment.id)}>
-        <Play className="w-4 h-4 mr-1" />
-        Play
-      </Button>
-      <Button variant="destructive" size="sm" onClick={() => onDelete(segment.id)}>
-        <X className="w-4 h-4 mr-1" />
-        Delete
-      </Button>
     </div>
   );
 };
@@ -200,6 +207,7 @@ const Index = () => {
   const [processedFilename, setProcessedFilename] = useState<string>("");
   const [jumpTimeSeconds, setJumpTimeSeconds] = useState<number>(10);
   const [showJumpTimeDialog, setShowJumpTimeDialog] = useState<boolean>(false);
+  const [viewRange, setViewRange] = useState<{start: number, end: number}>({start: 0, end: 100});
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const playerRef = useRef<HTMLDivElement>(null);
   const localMediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
@@ -265,6 +273,7 @@ const Index = () => {
             setEndTime([duration]);
             setStartTime([0]);
             setCurrentTime([0]);
+            setViewRange({start: 0, end: duration});
           },
           onStateChange: (event: any) => {
             setIsPlaying(event.data === 1);
@@ -424,6 +433,7 @@ const Index = () => {
           setEndTime([duration]);
           setStartTime([0]);
           setCurrentTime([0]);
+          setViewRange({start: 0, end: duration});
         };
       }
     }, 100);
@@ -1457,6 +1467,7 @@ const Index = () => {
                         setEndTime([duration]);
                         setStartTime([0]);
                         setCurrentTime([0]);
+                        setViewRange({start: 0, end: duration});
                       }}
                       onPlay={() => setIsPlaying(true)}
                       onPause={() => setIsPlaying(false)}
@@ -1481,6 +1492,7 @@ const Index = () => {
                             setEndTime([duration]);
                             setStartTime([0]);
                             setCurrentTime([0]);
+                            setViewRange({start: 0, end: duration});
                           }}
                           onPlay={() => setIsPlaying(true)}
                           onPause={() => setIsPlaying(false)}
@@ -1503,39 +1515,52 @@ const Index = () => {
               
               {/* ציר זמן מתקדם עם סמני חיתוך ווייבפורם */}
               <div className="mt-8 space-y-6 bg-black/95 rounded-2xl p-6 border border-accent/20 shadow-2xl">
+                {/* Zoom controls and song detection - positioned top right */}
+                <div className="absolute top-2 right-2 flex flex-col gap-2 z-20">
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="h-8 w-8 rounded-full bg-black/80 border-white/20 hover:bg-white/10"
+                    onClick={() => {
+                      const center = (viewRange.start + viewRange.end) / 2;
+                      const range = viewRange.end - viewRange.start;
+                      const newRange = Math.max(10, range * 0.7);
+                      setViewRange({
+                        start: Math.max(0, center - newRange / 2),
+                        end: Math.min(videoDuration, center + newRange / 2)
+                      });
+                    }}
+                  >
+                    <Plus className="h-4 w-4 text-white" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="h-8 w-8 rounded-full bg-black/80 border-white/20 hover:bg-white/10"
+                    onClick={() => {
+                      const center = (viewRange.start + viewRange.end) / 2;
+                      const range = viewRange.end - viewRange.start;
+                      const newRange = Math.min(videoDuration, range * 1.3);
+                      setViewRange({
+                        start: Math.max(0, center - newRange / 2),
+                        end: Math.min(videoDuration, center + newRange / 2)
+                      });
+                    }}
+                  >
+                    <Minus className="h-4 w-4 text-white" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="h-8 w-8 rounded-full bg-black/80 border-white/20 hover:bg-white/10"
+                    title="זיהוי שיר אוטומטי"
+                  >
+                    <Music className="h-4 w-4 text-white" />
+                  </Button>
+                </div>
+                
                 {/* Waveform visualization with cut markers */}
                 <div className="relative h-48 bg-gradient-to-b from-gray-900 to-black rounded-xl overflow-hidden border border-gray-700">
-                  {/* Zoom controls - positioned top right */}
-                  <div className="absolute top-2 right-2 flex gap-2 z-20">
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="h-8 w-8 rounded-full bg-black/80 border-white/20 hover:bg-white/10"
-                      onClick={() => {
-                        const center = (startTime[0] + endTime[0]) / 2;
-                        const range = endTime[0] - startTime[0];
-                        const newRange = Math.max(10, range * 0.7);
-                        setStartTime([Math.max(0, center - newRange / 2)]);
-                        setEndTime([Math.min(videoDuration, center + newRange / 2)]);
-                      }}
-                    >
-                      <Plus className="h-4 w-4 text-white" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="h-8 w-8 rounded-full bg-black/80 border-white/20 hover:bg-white/10"
-                      onClick={() => {
-                        const center = (startTime[0] + endTime[0]) / 2;
-                        const range = endTime[0] - startTime[0];
-                        const newRange = Math.min(videoDuration, range * 1.3);
-                        setStartTime([Math.max(0, center - newRange / 2)]);
-                        setEndTime([Math.min(videoDuration, center + newRange / 2)]);
-                      }}
-                    >
-                      <Minus className="h-4 w-4 text-white" />
-                    </Button>
-                  </div>
 
                   {/* Simulated waveform background */}
                   <div className="absolute inset-0 flex items-center">
@@ -1548,8 +1573,9 @@ const Index = () => {
                         </linearGradient>
                       </defs>
                       {Array.from({ length: 200 }, (_, i) => {
+                        const timeProgress = viewRange.start + (i / 200) * (viewRange.end - viewRange.start);
                         const x = (i / 200) * 100;
-                        const height = 30 + Math.random() * 60 + Math.sin(i / 10) * 20;
+                        const height = 30 + Math.random() * 60 + Math.sin((timeProgress / videoDuration) * 200 / 10) * 20;
                         return (
                           <rect
                             key={i}
@@ -1568,7 +1594,10 @@ const Index = () => {
                   {/* Start marker - Red vertical line */}
                   <div
                     className="absolute top-0 h-full w-0.5 bg-red-500 cursor-grab active:cursor-grabbing z-10 shadow-lg shadow-red-500/50"
-                    style={{ left: `${(startTime[0] / videoDuration) * 100}%` }}
+                    style={{ 
+                      left: `${((startTime[0] - viewRange.start) / (viewRange.end - viewRange.start)) * 100}%`,
+                      display: startTime[0] >= viewRange.start && startTime[0] <= viewRange.end ? 'block' : 'none'
+                    }}
                     draggable
                     onMouseDown={(e) => {
                       const startX = e.clientX;
@@ -1578,7 +1607,7 @@ const Index = () => {
                       const handleMouseMove = (e: MouseEvent) => {
                         const deltaX = e.clientX - startX;
                         const deltaPercent = deltaX / rect.width;
-                        const newVal = Math.max(0, Math.min(endTime[0] - 1, startVal + deltaPercent * videoDuration));
+                        const newVal = Math.max(viewRange.start, Math.min(endTime[0] - 1, startVal + deltaPercent * (viewRange.end - viewRange.start)));
                         setStartTime([newVal]);
                       };
                       
@@ -1600,7 +1629,7 @@ const Index = () => {
                         const touch = e.touches[0];
                         const deltaX = touch.clientX - startX;
                         const deltaPercent = deltaX / rect.width;
-                        const newVal = Math.max(0, Math.min(endTime[0] - 1, startVal + deltaPercent * videoDuration));
+                        const newVal = Math.max(viewRange.start, Math.min(endTime[0] - 1, startVal + deltaPercent * (viewRange.end - viewRange.start)));
                         setStartTime([newVal]);
                       };
                       
@@ -1617,7 +1646,10 @@ const Index = () => {
                   {/* End marker - Red vertical line */}
                   <div
                     className="absolute top-0 h-full w-0.5 bg-red-500 cursor-grab active:cursor-grabbing z-10 shadow-lg shadow-red-500/50"
-                    style={{ left: `${(endTime[0] / videoDuration) * 100}%` }}
+                    style={{ 
+                      left: `${((endTime[0] - viewRange.start) / (viewRange.end - viewRange.start)) * 100}%`,
+                      display: endTime[0] >= viewRange.start && endTime[0] <= viewRange.end ? 'block' : 'none'
+                    }}
                     draggable
                     onMouseDown={(e) => {
                       const startX = e.clientX;
@@ -1627,7 +1659,7 @@ const Index = () => {
                       const handleMouseMove = (e: MouseEvent) => {
                         const deltaX = e.clientX - startX;
                         const deltaPercent = deltaX / rect.width;
-                        const newVal = Math.max(startTime[0] + 1, Math.min(videoDuration, startVal + deltaPercent * videoDuration));
+                        const newVal = Math.max(startTime[0] + 1, Math.min(viewRange.end, startVal + deltaPercent * (viewRange.end - viewRange.start)));
                         setEndTime([newVal]);
                       };
                       
@@ -1649,7 +1681,7 @@ const Index = () => {
                         const touch = e.touches[0];
                         const deltaX = touch.clientX - startX;
                         const deltaPercent = deltaX / rect.width;
-                        const newVal = Math.max(startTime[0] + 1, Math.min(videoDuration, startVal + deltaPercent * videoDuration));
+                        const newVal = Math.max(startTime[0] + 1, Math.min(viewRange.end, startVal + deltaPercent * (viewRange.end - viewRange.start)));
                         setEndTime([newVal]);
                       };
                       
@@ -1666,7 +1698,10 @@ const Index = () => {
                   {/* Current time indicator */}
                   <div
                     className="absolute top-0 h-full w-0.5 bg-white/60 z-10"
-                    style={{ left: `${(currentTime[0] / videoDuration) * 100}%` }}
+                    style={{ 
+                      left: `${((currentTime[0] - viewRange.start) / (viewRange.end - viewRange.start)) * 100}%`,
+                      display: currentTime[0] >= viewRange.start && currentTime[0] <= viewRange.end ? 'block' : 'none'
+                    }}
                   />
                 </div>
 
