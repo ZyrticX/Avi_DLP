@@ -1514,7 +1514,7 @@ const Index = () => {
               </div>
               
               {/* ציר זמן מתקדם עם סמני חיתוך ווייבפורם */}
-              <div className="mt-8 space-y-6 bg-black/95 rounded-2xl p-6 border border-accent/20 shadow-2xl">
+              <div className="mt-8 space-y-6 bg-black/95 rounded-2xl p-6 border border-accent/20 shadow-2xl relative">
                 {/* Zoom controls and song detection - positioned top right */}
                 <div className="absolute top-2 right-2 flex flex-col gap-2 z-20">
                   <Button
