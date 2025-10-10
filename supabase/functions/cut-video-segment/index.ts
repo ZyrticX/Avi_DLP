@@ -19,68 +19,56 @@ serve(async (req) => {
 
     console.log(`Cutting YouTube video: ${videoId} from ${start}s to ${end}s`);
 
-    const duration = end - start;
-
-    // Use yt-dlp to download and cut the video segment
-    const ytDlpCommand = new Deno.Command("yt-dlp", {
-      args: [
-        "-f", "bestvideo+bestaudio/best",
-        "--merge-output-format", "mp4",
-        "--download-sections", `*${start}-${end}`,
-        "-o", "-",
-        `https://www.youtube.com/watch?v=${videoId}`
-      ],
-      stdout: "piped",
-      stderr: "piped",
-    });
-
-    const process = ytDlpCommand.spawn();
-    
-    // Collect stdout data
-    const chunks: Uint8Array[] = [];
-    const reader = process.stdout.getReader();
-    
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
+    const rapidApiKey = Deno.env.get('RAPIDAPI_KEY');
+    if (!rapidApiKey) {
+      throw new Error('RAPIDAPI_KEY not configured');
     }
 
-    // Wait for process to complete
-    const status = await process.status;
-    
-    if (!status.success) {
-      const errorReader = process.stderr.getReader();
-      const errorChunks: Uint8Array[] = [];
-      while (true) {
-        const { done, value } = await errorReader.read();
-        if (done) break;
-        errorChunks.push(value);
+    // First, get the download link for the full video
+    const response = await fetch(
+      `https://youtube-mp36.p.rapidapi.com/dl?id=${videoId}`,
+      {
+        method: 'GET',
+        headers: {
+          'X-RapidAPI-Key': rapidApiKey,
+          'X-RapidAPI-Host': 'youtube-mp36.p.rapidapi.com'
+        }
       }
-      const errorText = new TextDecoder().decode(
-        new Uint8Array(errorChunks.flatMap(chunk => Array.from(chunk)))
-      );
-      console.error('yt-dlp error:', errorText);
-      throw new Error(`Failed to cut video segment: ${errorText}`);
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to get download link: ${response.statusText}`);
     }
 
-    // Combine all chunks into a single Uint8Array
-    const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
-    const videoData = new Uint8Array(totalLength);
-    let offset = 0;
-    for (const chunk of chunks) {
-      videoData.set(chunk, offset);
-      offset += chunk.length;
+    const data = await response.json();
+    
+    if (!data.link) {
+      throw new Error('No download link received from API');
     }
 
-    console.log(`Successfully cut video segment. Size: ${videoData.length} bytes`);
+    console.log('Got download link, downloading full video to cut segment...');
+
+    // Download the full video
+    const videoResponse = await fetch(data.link);
+    
+    if (!videoResponse.ok) {
+      throw new Error(`Failed to download video: ${videoResponse.statusText}`);
+    }
+
+    // Return the full video with metadata about the segment to cut
+    // The client will handle the actual cutting using FFmpeg
+    const videoData = await videoResponse.arrayBuffer();
+    
+    console.log(`Successfully downloaded video for cutting. Size: ${videoData.byteLength} bytes`);
 
     return new Response(videoData, {
       headers: {
         ...corsHeaders,
         'Content-Type': 'video/mp4',
         'Content-Disposition': `attachment; filename="${title || 'segment'}_${start}-${end}.mp4"`,
-        'Content-Length': videoData.length.toString(),
+        'Content-Length': videoData.byteLength.toString(),
+        'X-Segment-Start': start.toString(),
+        'X-Segment-End': end.toString(),
       },
     });
 

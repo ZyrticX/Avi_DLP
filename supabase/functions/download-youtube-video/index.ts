@@ -19,76 +19,52 @@ serve(async (req) => {
 
     console.log(`Downloading YouTube video: ${videoId} with quality: ${quality}`);
 
-    // Format quality for yt-dlp
-    let formatString = 'best';
-    if (quality === '720p') {
-      formatString = 'bestvideo[height<=720]+bestaudio/best[height<=720]';
-    } else if (quality === '480p') {
-      formatString = 'bestvideo[height<=480]+bestaudio/best[height<=480]';
-    } else if (quality === '360p') {
-      formatString = 'bestvideo[height<=360]+bestaudio/best[height<=360]';
-    } else if (quality === 'best') {
-      formatString = 'bestvideo+bestaudio/best';
+    const rapidApiKey = Deno.env.get('RAPIDAPI_KEY');
+    if (!rapidApiKey) {
+      throw new Error('RAPIDAPI_KEY not configured');
     }
 
-    // Use yt-dlp to download the video
-    const ytDlpCommand = new Deno.Command("yt-dlp", {
-      args: [
-        "-f", formatString,
-        "--merge-output-format", "mp4",
-        "-o", "-",
-        `https://www.youtube.com/watch?v=${videoId}`
-      ],
-      stdout: "piped",
-      stderr: "piped",
-    });
-
-    const process = ytDlpCommand.spawn();
-    
-    // Collect stdout data
-    const chunks: Uint8Array[] = [];
-    const reader = process.stdout.getReader();
-    
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-    }
-
-    // Wait for process to complete
-    const status = await process.status;
-    
-    if (!status.success) {
-      const errorReader = process.stderr.getReader();
-      const errorChunks: Uint8Array[] = [];
-      while (true) {
-        const { done, value } = await errorReader.read();
-        if (done) break;
-        errorChunks.push(value);
+    // Use RapidAPI YouTube Download service
+    const response = await fetch(
+      `https://youtube-mp36.p.rapidapi.com/dl?id=${videoId}`,
+      {
+        method: 'GET',
+        headers: {
+          'X-RapidAPI-Key': rapidApiKey,
+          'X-RapidAPI-Host': 'youtube-mp36.p.rapidapi.com'
+        }
       }
-      const errorText = new TextDecoder().decode(
-        new Uint8Array(errorChunks.flatMap(chunk => Array.from(chunk)))
-      );
-      console.error('yt-dlp error:', errorText);
-      throw new Error(`Failed to download video: ${errorText}`);
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to get download link: ${response.statusText}`);
     }
 
-    // Combine all chunks into a single Uint8Array
-    const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
-    const videoData = new Uint8Array(totalLength);
-    let offset = 0;
-    for (const chunk of chunks) {
-      videoData.set(chunk, offset);
-      offset += chunk.length;
+    const data = await response.json();
+    
+    if (!data.link) {
+      throw new Error('No download link received from API');
     }
 
-    console.log(`Successfully downloaded video. Size: ${videoData.length} bytes`);
+    console.log('Got download link, fetching video...');
+
+    // Download the video from the provided link
+    const videoResponse = await fetch(data.link);
+    
+    if (!videoResponse.ok) {
+      throw new Error(`Failed to download video: ${videoResponse.statusText}`);
+    }
+
+    const videoData = await videoResponse.arrayBuffer();
+    
+    console.log(`Successfully downloaded video. Size: ${videoData.byteLength} bytes`);
 
     return new Response(videoData, {
       headers: {
         ...corsHeaders,
         'Content-Type': 'video/mp4',
-        'Content-Length': videoData.length.toString(),
+        'Content-Disposition': `attachment; filename="${videoId}.mp4"`,
+        'Content-Length': videoData.byteLength.toString(),
       },
     });
 
