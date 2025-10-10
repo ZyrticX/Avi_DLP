@@ -5,6 +5,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// List of Invidious instances to try
+const invidiousInstances = [
+  'https://invidious.fdn.fr',
+  'https://inv.tux.pizza',
+  'https://invidious.privacyredirect.com',
+  'https://yewtu.be'
+];
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -19,69 +27,75 @@ serve(async (req) => {
 
     console.log(`Downloading YouTube video: ${videoId} with quality: ${quality}`);
 
-    const rapidApiKey = Deno.env.get('RAPIDAPI_KEY');
-    if (!rapidApiKey) {
-      throw new Error('RAPIDAPI_KEY not configured');
-    }
+    let videoData = null;
+    let lastError = null;
 
-    // Use YTStream API from RapidAPI
-    const response = await fetch(
-      `https://ytstream-download-youtube-videos.p.rapidapi.com/dl?id=${videoId}`,
-      {
-        method: 'GET',
-        headers: {
-          'X-RapidAPI-Key': rapidApiKey,
-          'X-RapidAPI-Host': 'ytstream-download-youtube-videos.p.rapidapi.com'
-        }
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Failed to get video info: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    
-    console.log('Got video info:', data);
-
-    // Get the best quality video URL from formats
-    let videoUrl = null;
-    if (data.formats && data.formats.length > 0) {
-      // Find the best video format (with both video and audio)
-      const videoWithAudio = data.formats.find((f: any) => 
-        f.mimeType?.includes('video') && f.mimeType?.includes('audio')
-      );
-      
-      if (videoWithAudio) {
-        videoUrl = videoWithAudio.url;
-      } else {
-        // Fallback to highest quality video
-        const sortedFormats = data.formats
-          .filter((f: any) => f.mimeType?.includes('video'))
-          .sort((a: any, b: any) => (b.height || 0) - (a.height || 0));
+    // Try each Invidious instance until one works
+    for (const instance of invidiousInstances) {
+      try {
+        console.log(`Trying instance: ${instance}`);
         
-        if (sortedFormats.length > 0) {
-          videoUrl = sortedFormats[0].url;
+        // Get video info from Invidious
+        const infoResponse = await fetch(`${instance}/api/v1/videos/${videoId}`, {
+          headers: {
+            'Accept': 'application/json',
+          },
+        });
+
+        if (!infoResponse.ok) {
+          console.log(`Instance ${instance} returned ${infoResponse.status}`);
+          continue;
         }
+
+        const videoInfo = await infoResponse.json();
+        
+        // Get the best quality video URL
+        const formats = videoInfo.adaptiveFormats || videoInfo.formatStreams || [];
+        
+        // Try to find a format with both video and audio
+        let bestFormat = formats.find((f: any) => 
+          f.type?.includes('video') && f.type?.includes('audio')
+        );
+        
+        // If no combined format, get the best video-only format
+        if (!bestFormat) {
+          const videoFormats = formats.filter((f: any) => f.type?.includes('video'));
+          bestFormat = videoFormats.sort((a: any, b: any) => 
+            (b.qualityLabel || '0p').localeCompare(a.qualityLabel || '0p')
+          )[0];
+        }
+
+        if (!bestFormat || !bestFormat.url) {
+          console.log(`No suitable format found in ${instance}`);
+          continue;
+        }
+
+        console.log(`Found format: ${bestFormat.qualityLabel || bestFormat.quality}`);
+
+        // Download the video
+        const videoResponse = await fetch(bestFormat.url);
+        
+        if (!videoResponse.ok) {
+          console.log(`Failed to download from ${instance}: ${videoResponse.statusText}`);
+          continue;
+        }
+
+        videoData = await videoResponse.arrayBuffer();
+        console.log(`Successfully downloaded video. Size: ${videoData.byteLength} bytes`);
+        
+        // Success! Break the loop
+        break;
+        
+      } catch (error) {
+        console.log(`Error with instance ${instance}:`, error.message);
+        lastError = error;
+        continue;
       }
     }
 
-    if (!videoUrl) {
-      throw new Error('No video URL found in response');
+    if (!videoData) {
+      throw new Error(`Failed to download video from all instances. Last error: ${lastError?.message}`);
     }
-
-    console.log('Downloading video from URL...');
-
-    // Download the video
-    const videoResponse = await fetch(videoUrl);
-    
-    if (!videoResponse.ok) {
-      throw new Error(`Failed to download video: ${videoResponse.statusText}`);
-    }
-
-    const videoData = await videoResponse.arrayBuffer();
-    
-    console.log(`Successfully downloaded video. Size: ${videoData.byteLength} bytes`);
 
     return new Response(videoData, {
       headers: {
