@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import ytdl from "https://deno.land/x/ytdl_core@v0.1.2/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { videoId, quality = 'highest' } = await req.json();
+    const { videoId, quality = 'best' } = await req.json();
     
     if (!videoId) {
       throw new Error('Missing videoId parameter');
@@ -20,34 +19,67 @@ serve(async (req) => {
 
     console.log(`Downloading YouTube video: ${videoId} with quality: ${quality}`);
 
-    const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    const rapidApiKey = Deno.env.get('RAPIDAPI_KEY');
+    if (!rapidApiKey) {
+      throw new Error('RAPIDAPI_KEY not configured');
+    }
+
+    // Use YTStream API from RapidAPI
+    const response = await fetch(
+      `https://ytstream-download-youtube-videos.p.rapidapi.com/dl?id=${videoId}`,
+      {
+        method: 'GET',
+        headers: {
+          'X-RapidAPI-Key': rapidApiKey,
+          'X-RapidAPI-Host': 'ytstream-download-youtube-videos.p.rapidapi.com'
+        }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to get video info: ${response.statusText}`);
+    }
+
+    const data = await response.json();
     
-    // Get video info
-    const info = await ytdl.getInfo(videoUrl);
-    
-    // Get the best format
-    const format = ytdl.chooseFormat(info.formats, { quality });
-    
-    console.log(`Selected format: ${format.qualityLabel || format.quality}`);
+    console.log('Got video info:', data);
+
+    // Get the best quality video URL from formats
+    let videoUrl = null;
+    if (data.formats && data.formats.length > 0) {
+      // Find the best video format (with both video and audio)
+      const videoWithAudio = data.formats.find((f: any) => 
+        f.mimeType?.includes('video') && f.mimeType?.includes('audio')
+      );
+      
+      if (videoWithAudio) {
+        videoUrl = videoWithAudio.url;
+      } else {
+        // Fallback to highest quality video
+        const sortedFormats = data.formats
+          .filter((f: any) => f.mimeType?.includes('video'))
+          .sort((a: any, b: any) => (b.height || 0) - (a.height || 0));
+        
+        if (sortedFormats.length > 0) {
+          videoUrl = sortedFormats[0].url;
+        }
+      }
+    }
+
+    if (!videoUrl) {
+      throw new Error('No video URL found in response');
+    }
+
+    console.log('Downloading video from URL...');
 
     // Download the video
-    const videoStream = ytdl.downloadFromInfo(info, { format });
+    const videoResponse = await fetch(videoUrl);
     
-    // Convert stream to array buffer
-    const chunks: Uint8Array[] = [];
-    for await (const chunk of videoStream) {
-      chunks.push(chunk);
+    if (!videoResponse.ok) {
+      throw new Error(`Failed to download video: ${videoResponse.statusText}`);
     }
-    
-    const videoData = new Uint8Array(
-      chunks.reduce((acc, chunk) => acc + chunk.length, 0)
-    );
-    
-    let offset = 0;
-    for (const chunk of chunks) {
-      videoData.set(chunk, offset);
-      offset += chunk.length;
-    }
+
+    const videoData = await videoResponse.arrayBuffer();
     
     console.log(`Successfully downloaded video. Size: ${videoData.byteLength} bytes`);
 
