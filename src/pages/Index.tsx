@@ -223,6 +223,7 @@ const Index = () => {
   const [showJumpTimeDialog, setShowJumpTimeDialog] = useState<boolean>(false);
   const [viewRange, setViewRange] = useState<{start: number, end: number}>({start: 0, end: 100});
   const [audioData, setAudioData] = useState<number[]>(Array(200).fill(50));
+  const [isLoadingVideo, setIsLoadingVideo] = useState(false);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const playerRef = useRef<HTMLDivElement>(null);
   const localMediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
@@ -332,7 +333,7 @@ const Index = () => {
     return null;
   };
 
-  const loadVideo = () => {
+  const loadVideo = async () => {
     const id = extractVideoId(youtubeUrl);
     if (!id) {
       alert('Invalid YouTube URL');
@@ -340,13 +341,24 @@ const Index = () => {
     }
 
     setVideoId(id);
+    setIsLoadingVideo(true);
     
     // Clear any local file
     setCurrentEditingFile(null);
-
-    if (player) {
-      player.loadVideoById(id);
+    
+    // Download the video
+    const downloadedFile = await downloadYouTubeVideo(id);
+    if (downloadedFile) {
+      const url = URL.createObjectURL(downloadedFile);
+      setCurrentEditingFile({ file: downloadedFile, url, type: 'video' });
+      
+      // Setup audio analysis after download
+      setTimeout(() => {
+        setupAudioAnalysis(url);
+      }, 500);
     }
+    
+    setIsLoadingVideo(false);
     
     // Scroll to player
     setTimeout(() => {
@@ -431,6 +443,8 @@ const Index = () => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
+    setIsLoadingVideo(true);
+    
     const file = files[0];
     const url = URL.createObjectURL(file);
     const type = file.type.startsWith('audio/') ? 'audio' : 'video';
@@ -441,6 +455,7 @@ const Index = () => {
     // Setup audio analysis
     setTimeout(() => {
       setupAudioAnalysis(url);
+      setIsLoadingVideo(false);
     }, 500);
 
     // Wait for the media element to load to get duration
@@ -569,6 +584,8 @@ const Index = () => {
     e.preventDefault();
     setIsDragging(false);
     
+    setIsLoadingVideo(true);
+    
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
       const file = files[0];
@@ -581,6 +598,7 @@ const Index = () => {
       // Setup audio analysis
       setTimeout(() => {
         setupAudioAnalysis(url);
+        setIsLoadingVideo(false);
       }, 500);
 
       // Wait for the media element to load to get duration
@@ -1712,41 +1730,53 @@ const Index = () => {
                 {/* Waveform visualization with cut markers */}
                 <div className="relative h-48 bg-gradient-to-b from-gray-900 to-black rounded-xl overflow-hidden border border-gray-700">
 
-                  {/* Real-time audio waveform visualization */}
-                  <div className="absolute inset-0 flex items-center">
-                    <svg className="w-full h-full" preserveAspectRatio="none">
-                      <defs>
-                        <linearGradient id="waveGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                          <stop offset="0%" style={{ stopColor: '#10b981', stopOpacity: 0.8 }} />
-                          <stop offset="50%" style={{ stopColor: '#14b8a6', stopOpacity: 0.9 }} />
-                          <stop offset="100%" style={{ stopColor: '#06b6d4', stopOpacity: 0.7 }} />
-                        </linearGradient>
-                      </defs>
-                      {audioData.map((amplitude, i) => {
-                        const x = (i / audioData.length) * 100;
-                        const height = Math.max(10, amplitude);
-                        return (
-                          <rect
-                            key={i}
-                            x={`${x}%`}
-                            y={`${50 - height / 2}%`}
-                            width="0.4%"
-                            height={`${height}%`}
-                            fill="url(#waveGradient)"
-                            opacity={0.9}
-                          />
-                        );
-                      })}
-                    </svg>
-                  </div>
+                  {isLoadingVideo ? (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center space-y-4">
+                        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+                        <p className="text-white text-lg font-semibold">טוען סרטון...</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Real-time audio waveform visualization */}
+                      <div className="absolute inset-0 flex items-center">
+                        <svg className="w-full h-full" preserveAspectRatio="none">
+                          <defs>
+                            <linearGradient id="waveGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                              <stop offset="0%" style={{ stopColor: '#10b981', stopOpacity: 0.8 }} />
+                              <stop offset="50%" style={{ stopColor: '#14b8a6', stopOpacity: 0.9 }} />
+                              <stop offset="100%" style={{ stopColor: '#06b6d4', stopOpacity: 0.7 }} />
+                            </linearGradient>
+                          </defs>
+                          {audioData.map((amplitude, i) => {
+                            const x = (i / audioData.length) * 100;
+                            const height = Math.max(10, amplitude);
+                            return (
+                              <rect
+                                key={i}
+                                x={`${x}%`}
+                                y={`${50 - height / 2}%`}
+                                width="0.4%"
+                                height={`${height}%`}
+                                fill="url(#waveGradient)"
+                                opacity={0.9}
+                              />
+                            );
+                          })}
+                        </svg>
+                      </div>
+                    </>
+                  )}
 
                   {/* Start marker - Green vertical line with label */}
-                  <div
-                    className="absolute top-0 h-full w-1.5 bg-green-500 cursor-grab active:cursor-grabbing z-10 shadow-lg shadow-green-500/50 hover:w-2"
-                    style={{ 
-                      left: `${((startTime[0] - viewRange.start) / (viewRange.end - viewRange.start)) * 100}%`,
-                      display: startTime[0] >= viewRange.start && startTime[0] <= viewRange.end ? 'block' : 'none'
-                    }}
+                  {!isLoadingVideo && (
+                    <div
+                      className="absolute top-0 h-full w-1.5 bg-green-500 cursor-grab active:cursor-grabbing z-10 shadow-lg shadow-green-500/50 hover:w-2"
+                      style={{ 
+                        left: `${((startTime[0] - viewRange.start) / (viewRange.end - viewRange.start)) * 100}%`,
+                        display: startTime[0] >= viewRange.start && startTime[0] <= viewRange.end ? 'block' : 'none'
+                      }}
                     draggable
                     onMouseDown={(e) => {
                       const startX = e.clientX;
@@ -1795,9 +1825,11 @@ const Index = () => {
                       START ▼
                     </div>
                   </div>
+                  )}
 
                   {/* End marker - Red vertical line with label */}
-                  <div
+                  {!isLoadingVideo && (
+                    <div
                     className="absolute top-0 h-full w-1.5 bg-red-500 cursor-grab active:cursor-grabbing z-10 shadow-lg shadow-red-500/50 hover:w-2"
                     style={{ 
                       left: `${((endTime[0] - viewRange.start) / (viewRange.end - viewRange.start)) * 100}%`,
@@ -1851,15 +1883,18 @@ const Index = () => {
                       END ▼
                     </div>
                   </div>
+                  )}
 
                   {/* Current time indicator */}
-                  <div
+                  {!isLoadingVideo && (
+                    <div
                     className="absolute top-0 h-full w-0.5 bg-white/60 z-10"
                     style={{ 
                       left: `${((currentTime[0] - viewRange.start) / (viewRange.end - viewRange.start)) * 100}%`,
                       display: currentTime[0] >= viewRange.start && currentTime[0] <= viewRange.end ? 'block' : 'none'
                     }}
                   />
+                  )}
                 </div>
 
                 {/* Time inputs below waveform - with manual input */}
