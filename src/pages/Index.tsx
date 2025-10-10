@@ -1605,9 +1605,9 @@ const Index = () => {
                     </svg>
                   </div>
 
-                  {/* Start marker - Red vertical line */}
+                  {/* Start marker - Green vertical line with label */}
                   <div
-                    className="absolute top-0 h-full w-0.5 bg-red-500 cursor-grab active:cursor-grabbing z-10 shadow-lg shadow-red-500/50"
+                    className="absolute top-0 h-full w-1.5 bg-green-500 cursor-grab active:cursor-grabbing z-10 shadow-lg shadow-green-500/50 hover:w-2"
                     style={{ 
                       left: `${((startTime[0] - viewRange.start) / (viewRange.end - viewRange.start)) * 100}%`,
                       display: startTime[0] >= viewRange.start && startTime[0] <= viewRange.end ? 'block' : 'none'
@@ -1621,7 +1621,7 @@ const Index = () => {
                       const handleMouseMove = (e: MouseEvent) => {
                         const deltaX = e.clientX - startX;
                         const deltaPercent = deltaX / rect.width;
-                        const newVal = Math.max(viewRange.start, Math.min(endTime[0] - 1, startVal + deltaPercent * (viewRange.end - viewRange.start)));
+                        const newVal = Math.max(viewRange.start, Math.min(endTime[0] - 0.1, startVal + deltaPercent * (viewRange.end - viewRange.start)));
                         setStartTime([newVal]);
                       };
                       
@@ -1643,7 +1643,7 @@ const Index = () => {
                         const touch = e.touches[0];
                         const deltaX = touch.clientX - startX;
                         const deltaPercent = deltaX / rect.width;
-                        const newVal = Math.max(viewRange.start, Math.min(endTime[0] - 1, startVal + deltaPercent * (viewRange.end - viewRange.start)));
+                        const newVal = Math.max(viewRange.start, Math.min(endTime[0] - 0.1, startVal + deltaPercent * (viewRange.end - viewRange.start)));
                         setStartTime([newVal]);
                       };
                       
@@ -1655,11 +1655,15 @@ const Index = () => {
                       document.addEventListener('touchmove', handleTouchMove);
                       document.addEventListener('touchend', handleTouchEnd);
                     }}
-                  />
+                  >
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg whitespace-nowrap pointer-events-none">
+                      START ▼
+                    </div>
+                  </div>
 
-                  {/* End marker - Red vertical line */}
+                  {/* End marker - Red vertical line with label */}
                   <div
-                    className="absolute top-0 h-full w-0.5 bg-red-500 cursor-grab active:cursor-grabbing z-10 shadow-lg shadow-red-500/50"
+                    className="absolute top-0 h-full w-1.5 bg-red-500 cursor-grab active:cursor-grabbing z-10 shadow-lg shadow-red-500/50 hover:w-2"
                     style={{ 
                       left: `${((endTime[0] - viewRange.start) / (viewRange.end - viewRange.start)) * 100}%`,
                       display: endTime[0] >= viewRange.start && endTime[0] <= viewRange.end ? 'block' : 'none'
@@ -1673,7 +1677,7 @@ const Index = () => {
                       const handleMouseMove = (e: MouseEvent) => {
                         const deltaX = e.clientX - startX;
                         const deltaPercent = deltaX / rect.width;
-                        const newVal = Math.max(startTime[0] + 1, Math.min(viewRange.end, startVal + deltaPercent * (viewRange.end - viewRange.start)));
+                        const newVal = Math.max(startTime[0] + 0.1, Math.min(viewRange.end, startVal + deltaPercent * (viewRange.end - viewRange.start)));
                         setEndTime([newVal]);
                       };
                       
@@ -1695,7 +1699,7 @@ const Index = () => {
                         const touch = e.touches[0];
                         const deltaX = touch.clientX - startX;
                         const deltaPercent = deltaX / rect.width;
-                        const newVal = Math.max(startTime[0] + 1, Math.min(viewRange.end, startVal + deltaPercent * (viewRange.end - viewRange.start)));
+                        const newVal = Math.max(startTime[0] + 0.1, Math.min(viewRange.end, startVal + deltaPercent * (viewRange.end - viewRange.start)));
                         setEndTime([newVal]);
                       };
                       
@@ -1707,7 +1711,11 @@ const Index = () => {
                       document.addEventListener('touchmove', handleTouchMove);
                       document.addEventListener('touchend', handleTouchEnd);
                     }}
-                  />
+                  >
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg whitespace-nowrap pointer-events-none">
+                      END ▼
+                    </div>
+                  </div>
 
                   {/* Current time indicator */}
                   <div
@@ -1719,22 +1727,50 @@ const Index = () => {
                   />
                 </div>
 
-                {/* Time inputs below waveform */}
+                {/* Time inputs below waveform - with manual input */}
                 <div className="flex justify-between items-center gap-4 mt-4">
                   <div className="flex-1">
-                    <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-3 text-center">
-                      <p className="text-white font-mono text-xl font-semibold">
+                    <div className="bg-gray-800/50 border border-green-700/50 rounded-lg p-3">
+                      <p className="text-xs text-gray-400 mb-2 text-center">זמן התחלה (שניות)</p>
+                      <Input
+                        type="number"
+                        min="0"
+                        max={endTime[0]}
+                        step="0.1"
+                        value={startTime[0].toFixed(1)}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          if (!isNaN(val)) {
+                            setStartTime([Math.max(0, Math.min(endTime[0], val))]);
+                          }
+                        }}
+                        className="text-center font-mono text-lg bg-gray-900 border-green-500/50"
+                      />
+                      <p className="text-white font-mono text-sm mt-2 text-center">
                         {Math.floor(startTime[0] / 60).toString().padStart(2, '0')}:{Math.floor(startTime[0] % 60).toString().padStart(2, '0')}:{Math.floor((startTime[0] % 1) * 1000).toString().padStart(3, '0')}
                       </p>
-                      <p className="text-xs text-gray-400 mt-1">זמן התחלת חיתוך</p>
                     </div>
                   </div>
                   <div className="flex-1">
-                    <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-3 text-center">
-                      <p className="text-white font-mono text-xl font-semibold">
+                    <div className="bg-gray-800/50 border border-red-700/50 rounded-lg p-3">
+                      <p className="text-xs text-gray-400 mb-2 text-center">זמן סיום (שניות)</p>
+                      <Input
+                        type="number"
+                        min={startTime[0]}
+                        max={videoDuration}
+                        step="0.1"
+                        value={endTime[0].toFixed(1)}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          if (!isNaN(val)) {
+                            setEndTime([Math.max(startTime[0], Math.min(videoDuration, val))]);
+                          }
+                        }}
+                        className="text-center font-mono text-lg bg-gray-900 border-red-500/50"
+                      />
+                      <p className="text-white font-mono text-sm mt-2 text-center">
                         {Math.floor(endTime[0] / 60).toString().padStart(2, '0')}:{Math.floor(endTime[0] % 60).toString().padStart(2, '0')}:{Math.floor((endTime[0] % 1) * 1000).toString().padStart(3, '0')}
                       </p>
-                      <p className="text-xs text-gray-400 mt-1">זמן סיום חיתוך</p>
                     </div>
                   </div>
                 </div>
