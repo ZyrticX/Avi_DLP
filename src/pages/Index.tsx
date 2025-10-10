@@ -76,13 +76,14 @@ const formatTime = (seconds: number): string => {
 };
 
 // SortableItem component for drag and drop segments
-const SortableItem = ({ segment, index, onEdit, onPlay, onDelete, onDownload }: {
+const SortableItem = ({ segment, index, onEdit, onPlay, onDelete, onDownload, onIdentify }: {
   segment: {id: number, start: number, end: number, title: string, blob?: Blob, downloadUrl?: string},
   index: number,
   onEdit: (id: number, newTitle: string) => void,
   onPlay: (id: number) => void,
   onDelete: (id: number) => void,
-  onDownload?: (id: number) => void
+  onDownload?: (id: number) => void,
+  onIdentify?: (id: number) => void
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(segment.title);
@@ -128,6 +129,12 @@ const SortableItem = ({ segment, index, onEdit, onPlay, onDelete, onDownload }: 
           <Play className="w-4 h-4 mr-1" />
           Play
         </Button>
+        {segment.blob && onIdentify && (
+          <Button variant="outline" size="sm" onClick={() => onIdentify(segment.id)}>
+            <Music className="w-4 h-4 mr-1" />
+            זיהוי
+          </Button>
+        )}
         {(segment.blob || segment.downloadUrl) && onDownload && (
           <Button variant="outline" size="sm" onClick={() => onDownload(segment.id)}>
             <Download className="w-4 h-4 mr-1" />
@@ -2026,6 +2033,54 @@ const Index = () => {
                         if (seg && seg.blob) {
                           const extension = currentEditingFile?.file.name.split('.').pop() || 'mp4';
                           downloadBlob(seg.blob, `${seg.title}_${seg.start.toFixed(0)}-${seg.end.toFixed(0)}.${extension}`);
+                        }
+                      }}
+                      onIdentify={async (id) => {
+                        const seg = segments.find(s => s.id === id);
+                        if (!seg || !seg.blob) return;
+
+                        try {
+                          toast({
+                            title: "מזהה שיר...",
+                            description: "זה עשוי לקחת מספר שניות",
+                          });
+
+                          // Convert blob to base64
+                          const reader = new FileReader();
+                          reader.readAsDataURL(seg.blob);
+                          reader.onloadend = async () => {
+                            const base64 = (reader.result as string).split(',')[1];
+
+                            const { data, error } = await supabase.functions.invoke('identify-song', {
+                              body: { audioBlob: base64 }
+                            });
+
+                            if (error) throw error;
+
+                            if (data.title) {
+                              const songName = `${data.artist} - ${data.title}`;
+                              toast({
+                                title: "השיר זוהה!",
+                                description: songName,
+                              });
+                              
+                              // Update segment title
+                              handleEditSegment(id, songName);
+                            } else {
+                              toast({
+                                title: "השיר לא זוהה",
+                                description: "לא הצלחנו לזהות את השיר",
+                                variant: "destructive"
+                              });
+                            }
+                          };
+                        } catch (error) {
+                          console.error('Error identifying song:', error);
+                          toast({
+                            title: "שגיאה בזיהוי השיר",
+                            description: error.message,
+                            variant: "destructive",
+                          });
                         }
                       }}
                     />

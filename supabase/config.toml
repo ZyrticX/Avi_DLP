@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.cut-video-segment]
 verify_jwt = false
+
+[functions.identify-song]
+verify_jwt = false
