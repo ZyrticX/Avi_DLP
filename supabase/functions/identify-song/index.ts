@@ -24,18 +24,17 @@ serve(async (req) => {
       throw new Error('RAPIDAPI_KEY is not configured');
     }
 
-    // Convert base64 audio to binary
-    const audioData = Uint8Array.from(atob(audioBlob), c => c.charCodeAt(0));
-
-    // Call Shazam API via RapidAPI
-    const response = await fetch('https://shazam.p.rapidapi.com/songs/v2/detect', {
+    // Call Shazam API v3 via RapidAPI with JSON payload
+    const response = await fetch('https://shazam.p.rapidapi.com/songs/v3/detect', {
       method: 'POST',
       headers: {
         'X-RapidAPI-Key': RAPIDAPI_KEY,
         'X-RapidAPI-Host': 'shazam.p.rapidapi.com',
-        'Content-Type': 'text/plain',
+        'Content-Type': 'application/json',
       },
-      body: audioData,
+      body: JSON.stringify({
+        audio: audioBlob
+      }),
     });
 
     if (!response.ok) {
