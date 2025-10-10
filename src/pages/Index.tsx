@@ -222,9 +222,13 @@ const Index = () => {
   const [jumpTimeSeconds, setJumpTimeSeconds] = useState<number>(10);
   const [showJumpTimeDialog, setShowJumpTimeDialog] = useState<boolean>(false);
   const [viewRange, setViewRange] = useState<{start: number, end: number}>({start: 0, end: 100});
+  const [audioData, setAudioData] = useState<number[]>(Array(200).fill(50));
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const playerRef = useRef<HTMLDivElement>(null);
   const localMediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { 
@@ -423,14 +427,106 @@ const Index = () => {
     setSegments([...segments, newSegment]);
   };
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (files) {
-      const newFiles = Array.from(files);
-      setUploadedFiles(prev => [...prev, ...newFiles]);
-      console.log('Files uploaded:', newFiles.map(f => f.name));
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    const url = URL.createObjectURL(file);
+    const type = file.type.startsWith('audio/') ? 'audio' : 'video';
+
+    setCurrentEditingFile({ file, url, type });
+    setVideoId(''); // Clear YouTube video
+    
+    // Setup audio analysis
+    setTimeout(() => {
+      setupAudioAnalysis(url);
+    }, 500);
+
+    // Wait for the media element to load to get duration
+    setTimeout(() => {
+      if (localMediaRef.current) {
+        localMediaRef.current.onloadedmetadata = () => {
+          const duration = localMediaRef.current!.duration;
+          setVideoDuration(duration);
+          setEndTime([duration]);
+          setStartTime([0]);
+          setCurrentTime([0]);
+          setViewRange({start: 0, end: duration});
+        };
+      }
+    }, 100);
+
+    toast({
+      title: "קובץ הועלה בהצלחה!",
+      description: `${file.name} מוכן לעריכה`,
+    });
+  };
+
+  const setupAudioAnalysis = async (mediaUrl: string) => {
+    try {
+      // Cleanup previous audio context
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+
+      // Create audio context
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      audioContextRef.current = audioContext;
+
+      // Create analyser
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 512;
+      analyserRef.current = analyser;
+
+      // Get media element
+      const mediaElement = localMediaRef.current;
+      if (mediaElement) {
+        const source = audioContext.createMediaElementSource(mediaElement);
+        source.connect(analyser);
+        analyser.connect(audioContext.destination);
+
+        // Start visualization
+        const updateWaveform = () => {
+          const bufferLength = analyser.frequencyBinCount;
+          const dataArray = new Uint8Array(bufferLength);
+          analyser.getByteFrequencyData(dataArray);
+
+          // Sample 200 points from the frequency data
+          const samples = 200;
+          const step = Math.floor(bufferLength / samples);
+          const waveformData = [];
+          
+          for (let i = 0; i < samples; i++) {
+            const index = Math.min(i * step, bufferLength - 1);
+            waveformData.push(dataArray[index] / 255 * 100); // Normalize to 0-100
+          }
+          
+          setAudioData(waveformData);
+          animationFrameRef.current = requestAnimationFrame(updateWaveform);
+        };
+
+        updateWaveform();
+      }
+    } catch (error) {
+      console.error('Error setting up audio analysis:', error);
     }
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, []);
 
   const handleEditFile = (file: File) => {
     const fileUrl = URL.createObjectURL(file);
@@ -472,11 +568,39 @@ const Index = () => {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
+    
     const files = e.dataTransfer.files;
-    if (files) {
-      const newFiles = Array.from(files);
-      setUploadedFiles(prev => [...prev, ...newFiles]);
-      console.log('Files dropped:', newFiles.map(f => f.name));
+    if (files && files.length > 0) {
+      const file = files[0];
+      const url = URL.createObjectURL(file);
+      const type = file.type.startsWith('audio/') ? 'audio' : 'video';
+
+      setCurrentEditingFile({ file, url, type });
+      setVideoId('');
+      
+      // Setup audio analysis
+      setTimeout(() => {
+        setupAudioAnalysis(url);
+      }, 500);
+
+      // Wait for the media element to load to get duration
+      setTimeout(() => {
+        if (localMediaRef.current) {
+          localMediaRef.current.onloadedmetadata = () => {
+            const duration = localMediaRef.current!.duration;
+            setVideoDuration(duration);
+            setEndTime([duration]);
+            setStartTime([0]);
+            setCurrentTime([0]);
+            setViewRange({start: 0, end: duration});
+          };
+        }
+      }, 100);
+
+      toast({
+        title: "קובץ הועלה בהצלחה!",
+        description: `${file.name} מוכן לעריכה`,
+      });
     }
   };
 
@@ -524,6 +648,11 @@ const Index = () => {
       const url = URL.createObjectURL(downloadedFile);
       fileToProcess = { file: downloadedFile, url, type: 'video' };
       setCurrentEditingFile(fileToProcess);
+      
+      // Setup audio analysis for downloaded video
+      setTimeout(() => {
+        setupAudioAnalysis(url);
+      }, 500);
     }
 
     if (!fileToProcess) {
@@ -565,6 +694,7 @@ const Index = () => {
       const url = URL.createObjectURL(downloadedFile);
       fileToProcess = { file: downloadedFile, url, type: 'video' };
       setCurrentEditingFile(fileToProcess);
+      setTimeout(() => setupAudioAnalysis(url), 500);
     }
 
     if (!fileToProcess || segments.length === 0) {
@@ -592,6 +722,7 @@ const Index = () => {
       const url = URL.createObjectURL(downloadedFile);
       fileToProcess = { file: downloadedFile, url, type: 'video' };
       setCurrentEditingFile(fileToProcess);
+      setTimeout(() => setupAudioAnalysis(url), 500);
     }
 
     if (!fileToProcess || segments.length === 0) {
@@ -634,6 +765,7 @@ const Index = () => {
       const url = URL.createObjectURL(downloadedFile);
       fileToProcess = { file: downloadedFile, url, type: 'video' };
       setCurrentEditingFile(fileToProcess);
+      setTimeout(() => setupAudioAnalysis(url), 500);
     }
 
     if (!fileToProcess) {
@@ -674,6 +806,7 @@ const Index = () => {
       const url = URL.createObjectURL(downloadedFile);
       fileToProcess = { file: downloadedFile, url, type: 'video' };
       setCurrentEditingFile(fileToProcess);
+      setTimeout(() => setupAudioAnalysis(url), 500);
     }
 
     if (!fileToProcess) {
@@ -714,6 +847,7 @@ const Index = () => {
       const url = URL.createObjectURL(downloadedFile);
       fileToProcess = { file: downloadedFile, url, type: 'video' };
       setCurrentEditingFile(fileToProcess);
+      setTimeout(() => setupAudioAnalysis(url), 500);
     }
 
     if (!fileToProcess) {
@@ -754,6 +888,7 @@ const Index = () => {
       const url = URL.createObjectURL(downloadedFile);
       fileToProcess = { file: downloadedFile, url, type: 'video' };
       setCurrentEditingFile(fileToProcess);
+      setTimeout(() => setupAudioAnalysis(url), 500);
     }
 
     if (!fileToProcess || fileToProcess.type !== 'video') {
@@ -801,6 +936,7 @@ const Index = () => {
       const url = URL.createObjectURL(downloadedFile);
       fileToProcess = { file: downloadedFile, url, type: 'video' };
       setCurrentEditingFile(fileToProcess);
+      setTimeout(() => setupAudioAnalysis(url), 500);
     }
 
     if (!fileToProcess || fileToProcess.type !== 'video') {
@@ -1576,7 +1712,7 @@ const Index = () => {
                 {/* Waveform visualization with cut markers */}
                 <div className="relative h-48 bg-gradient-to-b from-gray-900 to-black rounded-xl overflow-hidden border border-gray-700">
 
-                  {/* Simulated waveform background */}
+                  {/* Real-time audio waveform visualization */}
                   <div className="absolute inset-0 flex items-center">
                     <svg className="w-full h-full" preserveAspectRatio="none">
                       <defs>
@@ -1586,10 +1722,9 @@ const Index = () => {
                           <stop offset="100%" style={{ stopColor: '#06b6d4', stopOpacity: 0.7 }} />
                         </linearGradient>
                       </defs>
-                      {Array.from({ length: 200 }, (_, i) => {
-                        const timeProgress = viewRange.start + (i / 200) * (viewRange.end - viewRange.start);
-                        const x = (i / 200) * 100;
-                        const height = 30 + Math.random() * 60 + Math.sin((timeProgress / videoDuration) * 200 / 10) * 20;
+                      {audioData.map((amplitude, i) => {
+                        const x = (i / audioData.length) * 100;
+                        const height = Math.max(10, amplitude);
                         return (
                           <rect
                             key={i}
