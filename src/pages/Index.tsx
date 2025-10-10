@@ -76,12 +76,13 @@ const formatTime = (seconds: number): string => {
 };
 
 // SortableItem component for drag and drop segments
-const SortableItem = ({ segment, index, onEdit, onPlay, onDelete }: {
-  segment: {id: number, start: number, end: number, title: string},
+const SortableItem = ({ segment, index, onEdit, onPlay, onDelete, onDownload }: {
+  segment: {id: number, start: number, end: number, title: string, blob?: Blob, downloadUrl?: string},
   index: number,
   onEdit: (id: number, newTitle: string) => void,
   onPlay: (id: number) => void,
-  onDelete: (id: number) => void
+  onDelete: (id: number) => void,
+  onDownload?: (id: number) => void
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(segment.title);
@@ -127,6 +128,12 @@ const SortableItem = ({ segment, index, onEdit, onPlay, onDelete }: {
           <Play className="w-4 h-4 mr-1" />
           Play
         </Button>
+        {(segment.blob || segment.downloadUrl) && onDownload && (
+          <Button variant="outline" size="sm" onClick={() => onDownload(segment.id)}>
+            <Download className="w-4 h-4 mr-1" />
+            הורד
+          </Button>
+        )}
         <Button variant="destructive" size="sm" onClick={() => onDelete(segment.id)}>
           <X className="w-4 h-4 mr-1" />
           Delete
@@ -178,7 +185,7 @@ const Index = () => {
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState([0]);
-  const [segments, setSegments] = useState<Array<{id: number, start: number, end: number, title: string}>>([]);
+  const [segments, setSegments] = useState<Array<{id: number, start: number, end: number, title: string, blob?: Blob, downloadUrl?: string}>>([]);
   const [fadeInDuration, setFadeInDuration] = useState([2]);
   const [fadeOutDuration, setFadeOutDuration] = useState([2]);
   const [projectName, setProjectName] = useState("YouTube Cutter Project");
@@ -1890,15 +1897,6 @@ const Index = () => {
                   className={`bg-primary hover:bg-primary/90 rounded-full ${isMobile ? 'px-4 py-2 text-sm' : 'px-8 py-3'}`} 
                   size={isMobile ? "sm" : "lg"}
                   onClick={async () => {
-                    if (!currentEditingFile) {
-                      toast({
-                        title: "אין קובץ",
-                        description: "יש להעלות קובץ תחילה",
-                        variant: "destructive"
-                      });
-                      return;
-                    }
-                    
                     const start = startTime[0];
                     const end = endTime[0];
                     
@@ -1912,19 +1910,60 @@ const Index = () => {
                     }
 
                     try {
-                      const blob = await cutVideo(
-                        currentEditingFile.file, 
-                        { id: 0, start, end, title: 'cut' }, 
-                        'mp4', 
-                        selectedVideoResolution
-                      );
+                      let cutBlob: Blob | null = null;
                       
-                      if (blob) {
-                        const extension = currentEditingFile.file.name.split('.').pop() || 'mp4';
-                        downloadBlob(blob, `cut_${start.toFixed(0)}-${end.toFixed(0)}.${extension}`);
+                      // If editing a YouTube video
+                      if (videoId && !currentEditingFile) {
                         toast({
-                          title: "הורדה הושלמה",
-                          description: "המקטע החתוך הורד בהצלחה"
+                          title: "חותך סרטון...",
+                          description: "זה עשוי לקחת מספר דקות",
+                        });
+
+                        const { data, error } = await supabase.functions.invoke('cut-video-segment', {
+                          body: { 
+                            videoId, 
+                            start, 
+                            end,
+                            title: `Segment ${segments.length + 1}`
+                          }
+                        });
+
+                        if (error) throw error;
+
+                        cutBlob = new Blob([data], { type: 'video/mp4' });
+                      } 
+                      // If editing a local file
+                      else if (currentEditingFile) {
+                        cutBlob = await cutVideo(
+                          currentEditingFile.file, 
+                          { id: 0, start, end, title: 'cut' }, 
+                          'mp4', 
+                          selectedVideoResolution
+                        );
+                      } else {
+                        toast({
+                          title: "אין קובץ",
+                          description: "יש להעלות קובץ או לבחור סרטון מיוטיוב תחילה",
+                          variant: "destructive"
+                        });
+                        return;
+                      }
+                      
+                      if (cutBlob) {
+                        // Add to segments list
+                        const newSegment = {
+                          id: Date.now(),
+                          start,
+                          end,
+                          title: `Segment ${segments.length + 1}`,
+                          blob: cutBlob,
+                          downloadUrl: URL.createObjectURL(cutBlob)
+                        };
+                        setSegments([...segments, newSegment]);
+                        
+                        toast({
+                          title: "החיתוך הושלם",
+                          description: "המקטע נוסף לרשימת המקטעים"
                         });
                       }
                     } catch (error) {
@@ -1935,10 +1974,10 @@ const Index = () => {
                       });
                     }
                   }}
-                  disabled={!currentEditingFile || isProcessing}
+                  disabled={(!currentEditingFile && !videoId) || isProcessing}
                 >
-                  <Download className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-2`} />
-                  {isProcessing ? `${progress.toFixed(0)}%` : 'שמור מקטע'}
+                  <Scissors className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-2`} />
+                  {isProcessing ? `${progress.toFixed(0)}%` : 'חתוך ושמור'}
                 </Button>
               </div>
 
@@ -1982,6 +2021,13 @@ const Index = () => {
                       onEdit={handleEditSegment}
                       onPlay={handlePlaySegment}
                       onDelete={handleDeleteSegment}
+                      onDownload={(id) => {
+                        const seg = segments.find(s => s.id === id);
+                        if (seg && seg.blob) {
+                          const extension = currentEditingFile?.file.name.split('.').pop() || 'mp4';
+                          downloadBlob(seg.blob, `${seg.title}_${seg.start.toFixed(0)}-${seg.end.toFixed(0)}.${extension}`);
+                        }
+                      }}
                     />
                   ))}
                 </SortableContext>
