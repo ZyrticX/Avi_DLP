@@ -66,6 +66,7 @@ import {
   Plus,
   Minus
 } from "lucide-react";
+import FAQ from "@/components/FAQ";
 
 // Format seconds to HH:MM:SS
 const formatTime = (seconds: number): string => {
@@ -3090,6 +3091,9 @@ const Index = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* FAQ Section */}
+      <FAQ />
     </div>
   );
 };
