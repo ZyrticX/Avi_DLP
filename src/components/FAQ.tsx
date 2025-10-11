@@ -90,12 +90,25 @@ const FAQ = () => {
             צור איתנו קשר ואנחנו נשמח לעזור!
           </p>
           <p className="text-muted-foreground mb-4">נשמח להצעות ייעול ובקשות לתוספות.</p>
-          <a
-            href="mailto:ncohenavi@gmail.com"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
-          >
-            שלח אימייל
-          </a>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <a
+              href="mailto:ncohenavi@gmail.com"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
+            >
+              שלח אימייל
+            </a>
+            <a
+              href="https://www.paypal.com/paypalme/ncohenavi"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-secondary text-secondary-foreground rounded-lg font-medium hover:bg-secondary/90 transition-colors"
+            >
+              תרומה להמשך פיתוח 💝
+            </a>
+          </div>
+          <p className="text-muted-foreground text-sm mt-4">
+            אם אהבתם את מה שאנחנו מפתחים, נשמח לתרומה להמשך שיפורים
+          </p>
         </div>
       </div>
     </div>
