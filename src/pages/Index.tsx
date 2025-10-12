@@ -1857,9 +1857,9 @@ const Index = () => {
                 </div>
 
                 {/* Time controls with +/- buttons */}
-                <div className="flex justify-between items-center gap-4 mt-4">
+                <div className="flex flex-col gap-4 mt-4">
                   {/* Start Time */}
-                  <div className="flex-1">
+                  <div className="w-full">
                     <div className="bg-gray-800/50 border border-green-700/50 rounded-lg p-4 flex items-center justify-between gap-3">
                       <div className="flex-1 text-right">
                         <p className="text-xs text-gray-400 mb-1">זמן התחלה</p>
@@ -1885,7 +1885,7 @@ const Index = () => {
                   </div>
 
                   {/* End Time */}
-                  <div className="flex-1">
+                  <div className="w-full">
                     <div className="bg-gray-800/50 border border-red-700/50 rounded-lg p-4 flex items-center justify-between gap-3">
                       <div className="flex gap-2">
                         <button
