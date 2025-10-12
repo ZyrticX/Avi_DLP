@@ -1070,16 +1070,6 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted to-background p-4">
       
-      {/* כפתור התחברות */}
-      <div className="flex justify-end mb-4">
-        <Button
-          onClick={() => navigate("/auth")}
-          className="bg-primary hover:bg-primary/90"
-        >
-          Sign In / Sign Up
-        </Button>
-      </div>
-
       {/* כותרת ראשית עם גרדיאנט */}
       <div className="text-center mb-8">
         <div className="flex items-center justify-center gap-4 mb-6">
@@ -1093,13 +1083,6 @@ const Index = () => {
         <p className="text-xl md:text-2xl text-muted-foreground mb-6">
           Cut and edit YouTube videos easily - no cost
         </p>
-        <div className="flex gap-4 justify-center flex-wrap">
-          <Badge className="text-lg px-6 py-3 bg-primary text-primary-foreground">Fast Cutting</Badge>
-          <Badge className="text-lg px-6 py-3 bg-secondary text-secondary-foreground">High Quality</Badge>
-          <Badge className="text-lg px-6 py-3 bg-accent text-accent-foreground">Song Recognition</Badge>
-          <Badge className="text-lg px-6 py-3 bg-muted text-muted-foreground">Free</Badge>
-        </div>
-        
         {/* FFmpeg Status Indicator */}
         {!isFFmpegReady && (
           <div className="mt-6 flex items-center justify-center gap-3 text-sm">
@@ -1107,36 +1090,11 @@ const Index = () => {
             <span className="text-muted-foreground">טוען מנוע עיבוד וידאו...</span>
           </div>
         )}
-        {isFFmpegReady && (
-          <div className="mt-6 flex items-center justify-center gap-3 text-sm">
-            <div className="rounded-full h-2 w-2 bg-green-500"></div>
-            <span className="text-green-600">מנוע עיבוד מוכן!</span>
-          </div>
-        )}
       </div>
 
 
       <div className="max-w-7xl mx-auto grid gap-8">
         
-        {/* הגבלות שימוש חינמי */}
-        <Card className="max-w-4xl mx-auto mb-8 border-orange-500/30 bg-gradient-to-r from-orange-500/10 to-red-500/10">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3 text-center">
-              <AlertCircle className="w-6 h-6 text-orange-500" />
-              <div>
-                <p className="text-lg font-semibold">Limited Free Usage</p>
-                <p className="text-sm text-muted-foreground">
-                  Up to 2 minutes, basic quality, 3 attempts per day. For full usage - upgrade to subscription
-                </p>
-                <div className="flex gap-2 mt-2">
-                  <Badge variant="outline">Attempts: {3 - usageCount}/3</Badge>
-                  <Badge variant="outline">Max time: 2 minutes</Badge>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* אזור הכנסת קבצים */}
         <div className="grid md:grid-cols-3 gap-6">
           <Card className="bg-gradient-to-br from-primary/10 to-secondary/10 border-primary/30 shadow-glow">
