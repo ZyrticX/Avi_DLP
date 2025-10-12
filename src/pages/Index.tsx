@@ -1862,11 +1862,9 @@ const Index = () => {
                   <div className="w-full">
                     <div className="bg-gray-800/50 border border-green-700/50 rounded-lg p-4 flex items-center justify-between gap-3">
                       <div className="flex-1 text-right">
-                        <p className="text-xs text-gray-400 mb-1">זמן התחלה</p>
                         <p className="text-white font-mono text-2xl font-bold">
                           {Math.floor(startTime[0] / 3600).toString().padStart(3, '0')}:{Math.floor((startTime[0] % 3600) / 60).toString().padStart(2, '0')}:{Math.floor(startTime[0] % 60).toString().padStart(2, '0')}
                         </p>
-                        <p className="text-white/60 text-xs mt-1 font-mono" style={{ letterSpacing: '0.85em' }}>hr   min  sec</p>
                       </div>
                       <div className="flex gap-2">
                         <button
@@ -1903,11 +1901,9 @@ const Index = () => {
                         </button>
                       </div>
                       <div className="flex-1 text-right">
-                        <p className="text-xs text-gray-400 mb-1">זמן סיום</p>
                         <p className="text-white font-mono text-2xl font-bold">
                           {Math.floor(endTime[0] / 3600).toString().padStart(3, '0')}:{Math.floor((endTime[0] % 3600) / 60).toString().padStart(2, '0')}:{Math.floor(endTime[0] % 60).toString().padStart(2, '0')}
                         </p>
-                        <p className="text-white/60 text-xs mt-1 font-mono" style={{ letterSpacing: '0.85em' }}>hr   min  sec</p>
                       </div>
                     </div>
                   </div>
