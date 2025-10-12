@@ -1898,50 +1898,57 @@ const Index = () => {
                   )}
                 </div>
 
-                {/* Time inputs below waveform - with manual input */}
+                {/* Time controls with +/- buttons */}
                 <div className="flex justify-between items-center gap-4 mt-4">
+                  {/* Start Time */}
                   <div className="flex-1">
-                    <div className="bg-gray-800/50 border border-green-700/50 rounded-lg p-3">
-                      <p className="text-xs text-gray-400 mb-2 text-center">זמן התחלה (שניות)</p>
-                      <Input
-                        type="number"
-                        min="0"
-                        max={endTime[0]}
-                        step="0.1"
-                        value={startTime[0].toFixed(1)}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value);
-                          if (!isNaN(val)) {
-                            setStartTime([Math.max(0, Math.min(endTime[0], val))]);
-                          }
-                        }}
-                        className="text-center font-mono text-lg bg-gray-900 border-green-500/50"
-                      />
-                      <p className="text-white font-mono text-sm mt-2 text-center">
-                        {Math.floor(startTime[0] / 60).toString().padStart(2, '0')}:{Math.floor(startTime[0] % 60).toString().padStart(2, '0')}:{Math.floor((startTime[0] % 1) * 1000).toString().padStart(3, '0')}
-                      </p>
+                    <div className="bg-gray-800/50 border border-green-700/50 rounded-lg p-4 flex items-center justify-between gap-3">
+                      <div className="flex-1 text-right">
+                        <p className="text-xs text-gray-400 mb-1">זמן התחלה</p>
+                        <p className="text-white font-mono text-2xl font-bold">
+                          {Math.floor(startTime[0] / 60).toString().padStart(2, '0')}:{Math.floor(startTime[0] % 60).toString().padStart(2, '0')}:{Math.floor((startTime[0] % 1) * 100).toString().padStart(2, '0')}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setStartTime([Math.max(0, startTime[0] - 0.1)])}
+                          className="w-12 h-12 rounded-full bg-white hover:bg-white/90 transition-colors flex items-center justify-center shadow-lg"
+                        >
+                          <Minus className="w-6 h-6 text-orange-500" strokeWidth={3} />
+                        </button>
+                        <button
+                          onClick={() => setStartTime([Math.min(endTime[0], startTime[0] + 0.1)])}
+                          className="w-12 h-12 rounded-full bg-white hover:bg-white/90 transition-colors flex items-center justify-center shadow-lg"
+                        >
+                          <Plus className="w-6 h-6 text-orange-500" strokeWidth={3} />
+                        </button>
+                      </div>
                     </div>
                   </div>
+
+                  {/* End Time */}
                   <div className="flex-1">
-                    <div className="bg-gray-800/50 border border-red-700/50 rounded-lg p-3">
-                      <p className="text-xs text-gray-400 mb-2 text-center">זמן סיום (שניות)</p>
-                      <Input
-                        type="number"
-                        min={startTime[0]}
-                        max={videoDuration}
-                        step="0.1"
-                        value={endTime[0].toFixed(1)}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value);
-                          if (!isNaN(val)) {
-                            setEndTime([Math.max(startTime[0], Math.min(videoDuration, val))]);
-                          }
-                        }}
-                        className="text-center font-mono text-lg bg-gray-900 border-red-500/50"
-                      />
-                      <p className="text-white font-mono text-sm mt-2 text-center">
-                        {Math.floor(endTime[0] / 60).toString().padStart(2, '0')}:{Math.floor(endTime[0] % 60).toString().padStart(2, '0')}:{Math.floor((endTime[0] % 1) * 1000).toString().padStart(3, '0')}
-                      </p>
+                    <div className="bg-gray-800/50 border border-red-700/50 rounded-lg p-4 flex items-center justify-between gap-3">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setEndTime([Math.max(startTime[0], endTime[0] - 0.1)])}
+                          className="w-12 h-12 rounded-full bg-white hover:bg-white/90 transition-colors flex items-center justify-center shadow-lg"
+                        >
+                          <Minus className="w-6 h-6 text-orange-500" strokeWidth={3} />
+                        </button>
+                        <button
+                          onClick={() => setEndTime([Math.min(videoDuration, endTime[0] + 0.1)])}
+                          className="w-12 h-12 rounded-full bg-white hover:bg-white/90 transition-colors flex items-center justify-center shadow-lg"
+                        >
+                          <Plus className="w-6 h-6 text-orange-500" strokeWidth={3} />
+                        </button>
+                      </div>
+                      <div className="flex-1 text-right">
+                        <p className="text-xs text-gray-400 mb-1">זמן סיום</p>
+                        <p className="text-white font-mono text-2xl font-bold">
+                          {Math.floor(endTime[0] / 60).toString().padStart(2, '0')}:{Math.floor(endTime[0] % 60).toString().padStart(2, '0')}:{Math.floor((endTime[0] % 1) * 100).toString().padStart(2, '0')}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
