@@ -367,9 +367,15 @@ const Index = () => {
     }, 500);
   };
 
-  const togglePlayPause = () => {
+  const togglePlayPause = async () => {
     if (currentEditingFile && localMediaRef.current) {
       const media = localMediaRef.current as HTMLVideoElement | HTMLAudioElement;
+      
+      // Resume audio context if suspended
+      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume();
+      }
+      
       if (isPlaying) {
         media.pause();
       } else {
@@ -481,29 +487,50 @@ const Index = () => {
 
   const setupAudioAnalysis = async (mediaUrl: string) => {
     try {
+      console.log('Setting up audio analysis...');
+      
       // Cleanup previous audio context
       if (audioContextRef.current) {
-        audioContextRef.current.close();
+        try {
+          await audioContextRef.current.close();
+        } catch (e) {
+          console.log('Error closing previous context:', e);
+        }
       }
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
 
+      // Wait a bit for media element to be ready
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Get media element
+      const mediaElement = localMediaRef.current;
+      if (!mediaElement) {
+        console.error('Media element not found');
+        return;
+      }
+
       // Create audio context
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       audioContextRef.current = audioContext;
+      console.log('Audio context state:', audioContext.state);
 
       // Create analyser
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 512;
       analyserRef.current = analyser;
 
-      // Get media element
-      const mediaElement = localMediaRef.current;
-      if (mediaElement) {
+      try {
         const source = audioContext.createMediaElementSource(mediaElement);
         source.connect(analyser);
         analyser.connect(audioContext.destination);
+        console.log('Audio nodes connected successfully');
+
+        // Resume context if suspended
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
 
         // Start visualization
         const updateWaveform = () => {
@@ -518,7 +545,8 @@ const Index = () => {
           
           for (let i = 0; i < samples; i++) {
             const index = Math.min(i * step, bufferLength - 1);
-            waveformData.push(dataArray[index] / 255 * 100); // Normalize to 0-100
+            const value = dataArray[index] / 255 * 100; // Normalize to 0-100
+            waveformData.push(value);
           }
           
           setAudioData(waveformData);
@@ -526,6 +554,10 @@ const Index = () => {
         };
 
         updateWaveform();
+        console.log('Waveform visualization started');
+      } catch (sourceError) {
+        console.error('Error creating media source:', sourceError);
+        // Try to continue anyway
       }
     } catch (error) {
       console.error('Error setting up audio analysis:', error);
@@ -1643,46 +1675,60 @@ const Index = () => {
               {/* ציר זמן מתקדם עם סמני חיתוך ווייבפורם */}
               <div className="mt-8 space-y-6 bg-black/95 rounded-2xl p-6 border border-accent/20 shadow-2xl relative">
                 {/* Zoom controls and song detection - positioned top right */}
-                <div className="absolute top-2 right-2 flex flex-col gap-2 z-20">
+                <div className="absolute top-2 right-2 flex flex-col gap-2 z-30 pointer-events-auto">
                   <Button
                     size="icon"
                     variant="outline"
-                    className="h-8 w-8 rounded-full bg-black/80 border-white/20 hover:bg-white/10"
-                    onClick={() => {
+                    className="h-10 w-10 rounded-full bg-black/90 border-white/30 hover:bg-white/20 shadow-lg"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log('Zoom in clicked');
                       const center = (viewRange.start + viewRange.end) / 2;
                       const range = viewRange.end - viewRange.start;
                       const newRange = Math.max(10, range * 0.7);
+                      const newStart = Math.max(0, center - newRange / 2);
+                      const newEnd = Math.min(videoDuration, center + newRange / 2);
+                      console.log('New range:', newStart, newEnd);
                       setViewRange({
-                        start: Math.max(0, center - newRange / 2),
-                        end: Math.min(videoDuration, center + newRange / 2)
+                        start: newStart,
+                        end: newEnd
                       });
                     }}
                   >
-                    <Plus className="h-4 w-4 text-white" />
+                    <Plus className="h-5 w-5 text-white" />
                   </Button>
                   <Button
                     size="icon"
                     variant="outline"
-                    className="h-8 w-8 rounded-full bg-black/80 border-white/20 hover:bg-white/10"
-                    onClick={() => {
+                    className="h-10 w-10 rounded-full bg-black/90 border-white/30 hover:bg-white/20 shadow-lg"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log('Zoom out clicked');
                       const center = (viewRange.start + viewRange.end) / 2;
                       const range = viewRange.end - viewRange.start;
                       const newRange = Math.min(videoDuration, range * 1.3);
+                      const newStart = Math.max(0, center - newRange / 2);
+                      const newEnd = Math.min(videoDuration, center + newRange / 2);
+                      console.log('New range:', newStart, newEnd);
                       setViewRange({
-                        start: Math.max(0, center - newRange / 2),
-                        end: Math.min(videoDuration, center + newRange / 2)
+                        start: newStart,
+                        end: newEnd
                       });
                     }}
                   >
-                    <Minus className="h-4 w-4 text-white" />
+                    <Minus className="h-5 w-5 text-white" />
                   </Button>
                   <Button
                     size="icon"
                     variant="outline"
-                    className="h-8 w-8 rounded-full bg-black/80 border-white/20 hover:bg-white/10"
+                    className="h-10 w-10 rounded-full bg-black/90 border-white/30 hover:bg-white/20 shadow-lg"
                     title="זיהוי שיר אוטומטי"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log('Song detection clicked');
+                    }}
                   >
-                    <Music className="h-4 w-4 text-white" />
+                    <Music className="h-5 w-5 text-white" />
                   </Button>
                 </div>
                 
@@ -1868,14 +1914,28 @@ const Index = () => {
                       </div>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => setStartTime([Math.max(0, startTime[0] - 0.1)])}
-                          className="w-12 h-12 rounded-full bg-white hover:bg-white/90 transition-colors flex items-center justify-center shadow-lg"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const newValue = Math.max(0, startTime[0] - 0.1);
+                            console.log('Start time minus:', newValue);
+                            setStartTime([newValue]);
+                          }}
+                          className="w-12 h-12 rounded-full bg-white hover:bg-white/90 active:bg-white/80 transition-colors flex items-center justify-center shadow-lg cursor-pointer"
+                          type="button"
                         >
                           <Minus className="w-6 h-6 text-orange-500" strokeWidth={3} />
                         </button>
                         <button
-                          onClick={() => setStartTime([Math.min(endTime[0], startTime[0] + 0.1)])}
-                          className="w-12 h-12 rounded-full bg-white hover:bg-white/90 transition-colors flex items-center justify-center shadow-lg"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const newValue = Math.min(endTime[0], startTime[0] + 0.1);
+                            console.log('Start time plus:', newValue);
+                            setStartTime([newValue]);
+                          }}
+                          className="w-12 h-12 rounded-full bg-white hover:bg-white/90 active:bg-white/80 transition-colors flex items-center justify-center shadow-lg cursor-pointer"
+                          type="button"
                         >
                           <Plus className="w-6 h-6 text-orange-500" strokeWidth={3} />
                         </button>
@@ -1888,14 +1948,28 @@ const Index = () => {
                     <div className="bg-gray-800/50 border border-red-700/50 rounded-lg p-4 flex items-center justify-between gap-3">
                       <div className="flex gap-2">
                         <button
-                          onClick={() => setEndTime([Math.max(startTime[0], endTime[0] - 0.1)])}
-                          className="w-12 h-12 rounded-full bg-white hover:bg-white/90 transition-colors flex items-center justify-center shadow-lg"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const newValue = Math.max(startTime[0], endTime[0] - 0.1);
+                            console.log('End time minus:', newValue);
+                            setEndTime([newValue]);
+                          }}
+                          className="w-12 h-12 rounded-full bg-white hover:bg-white/90 active:bg-white/80 transition-colors flex items-center justify-center shadow-lg cursor-pointer"
+                          type="button"
                         >
                           <Minus className="w-6 h-6 text-orange-500" strokeWidth={3} />
                         </button>
                         <button
-                          onClick={() => setEndTime([Math.min(videoDuration, endTime[0] + 0.1)])}
-                          className="w-12 h-12 rounded-full bg-white hover:bg-white/90 transition-colors flex items-center justify-center shadow-lg"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const newValue = Math.min(videoDuration, endTime[0] + 0.1);
+                            console.log('End time plus:', newValue);
+                            setEndTime([newValue]);
+                          }}
+                          className="w-12 h-12 rounded-full bg-white hover:bg-white/90 active:bg-white/80 transition-colors flex items-center justify-center shadow-lg cursor-pointer"
+                          type="button"
                         >
                           <Plus className="w-6 h-6 text-orange-500" strokeWidth={3} />
                         </button>
