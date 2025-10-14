@@ -1928,9 +1928,28 @@ const Index = () => {
                   <div className="w-full">
                     <div className="bg-gray-800/50 border border-green-700/50 rounded-lg p-4 flex items-center justify-between gap-3">
                       <div className="flex-1 text-right">
-                        <p className="text-white font-mono text-2xl font-bold">
-                          {Math.floor(startTime[0] / 3600).toString().padStart(3, '0')}:{Math.floor((startTime[0] % 3600) / 60).toString().padStart(2, '0')}:{Math.floor(startTime[0] % 60).toString().padStart(2, '0')}
-                        </p>
+                        <div className="flex items-baseline gap-1 justify-end">
+                          <div className="text-center">
+                            <p className="text-white font-mono text-2xl font-bold">
+                              {Math.floor(startTime[0] / 3600).toString().padStart(3, '0')}
+                            </p>
+                            <p className="text-gray-400 text-xs mt-0.5">Hr</p>
+                          </div>
+                          <span className="text-white font-mono text-2xl font-bold">:</span>
+                          <div className="text-center">
+                            <p className="text-white font-mono text-2xl font-bold">
+                              {Math.floor((startTime[0] % 3600) / 60).toString().padStart(2, '0')}
+                            </p>
+                            <p className="text-gray-400 text-xs mt-0.5">Min</p>
+                          </div>
+                          <span className="text-white font-mono text-2xl font-bold">:</span>
+                          <div className="text-center">
+                            <p className="text-white font-mono text-2xl font-bold">
+                              {Math.floor(startTime[0] % 60).toString().padStart(2, '0')}
+                            </p>
+                            <p className="text-gray-400 text-xs mt-0.5">Sec</p>
+                          </div>
+                        </div>
                       </div>
                       <div className="flex gap-2">
                         <button
@@ -1995,9 +2014,28 @@ const Index = () => {
                         </button>
                       </div>
                       <div className="flex-1 text-right">
-                        <p className="text-white font-mono text-2xl font-bold">
-                          {Math.floor(endTime[0] / 3600).toString().padStart(3, '0')}:{Math.floor((endTime[0] % 3600) / 60).toString().padStart(2, '0')}:{Math.floor(endTime[0] % 60).toString().padStart(2, '0')}
-                        </p>
+                        <div className="flex items-baseline gap-1 justify-end">
+                          <div className="text-center">
+                            <p className="text-white font-mono text-2xl font-bold">
+                              {Math.floor(endTime[0] / 3600).toString().padStart(3, '0')}
+                            </p>
+                            <p className="text-gray-400 text-xs mt-0.5">Hr</p>
+                          </div>
+                          <span className="text-white font-mono text-2xl font-bold">:</span>
+                          <div className="text-center">
+                            <p className="text-white font-mono text-2xl font-bold">
+                              {Math.floor((endTime[0] % 3600) / 60).toString().padStart(2, '0')}
+                            </p>
+                            <p className="text-gray-400 text-xs mt-0.5">Min</p>
+                          </div>
+                          <span className="text-white font-mono text-2xl font-bold">:</span>
+                          <div className="text-center">
+                            <p className="text-white font-mono text-2xl font-bold">
+                              {Math.floor(endTime[0] % 60).toString().padStart(2, '0')}
+                            </p>
+                            <p className="text-gray-400 text-xs mt-0.5">Sec</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
