@@ -1628,7 +1628,17 @@ const Index = () => {
                         setCurrentTime([0]);
                         setViewRange({start: 0, end: duration});
                       }}
-                      onPlay={() => setIsPlaying(true)}
+                      onPlay={async () => {
+                        setIsPlaying(true);
+                        try {
+                          if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+                            await audioContextRef.current.resume();
+                            console.log('AudioContext resumed on media play (video)');
+                          }
+                        } catch (e) {
+                          console.log('Failed to resume AudioContext (video):', e);
+                        }
+                      }}
                       onPause={() => setIsPlaying(false)}
                     />
                   ) : (
@@ -1653,7 +1663,17 @@ const Index = () => {
                             setCurrentTime([0]);
                             setViewRange({start: 0, end: duration});
                           }}
-                          onPlay={() => setIsPlaying(true)}
+                          onPlay={async () => {
+                            setIsPlaying(true);
+                            try {
+                              if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+                                await audioContextRef.current.resume();
+                                console.log('AudioContext resumed on media play (audio)');
+                              }
+                            } catch (e) {
+                              console.log('Failed to resume AudioContext (audio):', e);
+                            }
+                          }}
                           onPause={() => setIsPlaying(false)}
                         />
                       </div>
