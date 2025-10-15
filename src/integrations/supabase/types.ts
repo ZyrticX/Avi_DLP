@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      movies: {
+        Row: {
+          created_at: string | null
+          duration: number | null
+          file_id: string
+          id: string
+          original_language: string | null
+          title: string
+          year: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          duration?: number | null
+          file_id: string
+          id?: string
+          original_language?: string | null
+          title: string
+          year?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          duration?: number | null
+          file_id?: string
+          id?: string
+          original_language?: string | null
+          title?: string
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movies_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "uploaded_files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       playlists: {
         Row: {
           created_at: string | null
@@ -86,6 +124,47 @@ export type Database = {
             columns: ["playlist_id"]
             isOneToOne: false
             referencedRelation: "playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subtitles: {
+        Row: {
+          created_at: string | null
+          file_path: string
+          format: string | null
+          id: string
+          is_translated: boolean | null
+          language: string
+          movie_id: string
+          source_language: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          file_path: string
+          format?: string | null
+          id?: string
+          is_translated?: boolean | null
+          language: string
+          movie_id: string
+          source_language?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          file_path?: string
+          format?: string | null
+          id?: string
+          is_translated?: boolean | null
+          language?: string
+          movie_id?: string
+          source_language?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subtitles_movie_id_fkey"
+            columns: ["movie_id"]
+            isOneToOne: false
+            referencedRelation: "movies"
             referencedColumns: ["id"]
           },
         ]
