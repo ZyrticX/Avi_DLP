@@ -255,26 +255,85 @@ export default function Movies() {
     setTranslationProgress(0);
     
     try {
-      const { data, error } = await supabase.functions.invoke('translate-subtitles', {
-        body: {
-          movieId: movie?.id,
-          sourceSubtitleId: subtitle.id,
-          targetLanguage,
-        },
-      });
+      // Simulate progress for UX
+      const progressInterval = setInterval(() => {
+        setTranslationProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 300);
 
-      if (error) throw error;
+      // First, check if subtitles already exist in target language
+      const existingSubtitlesInTargetLang = searchResults[targetLanguage];
+      
+      if (existingSubtitlesInTargetLang && existingSubtitlesInTargetLang.length > 0) {
+        // Found existing subtitles in target language - download them instead of translating
+        console.log('Found existing subtitles in target language:', targetLanguage);
+        
+        // Use the highest rated one
+        const bestSubtitle = existingSubtitlesInTargetLang[0];
+        
+        const { data, error } = await supabase.functions.invoke('download-subtitle', {
+          body: {
+            movieId: movie?.id,
+            fileId: bestSubtitle.id,
+            language: targetLanguage,
+            fileName: bestSubtitle.file_name,
+          },
+        });
+
+        if (error) throw error;
+
+        // Mark as "translated" in the database for UI consistency
+        const { error: updateError } = await supabase
+          .from('subtitles')
+          .update({ 
+            is_translated: true,
+            source_language: subtitle.language 
+          })
+          .eq('id', data.subtitle.id);
+
+        if (updateError) {
+          console.error('Failed to mark as translated:', updateError);
+        }
+
+        clearInterval(progressInterval);
+        setTranslationProgress(100);
+
+        toast({
+          title: 'כתוביות נוספו בהצלחה',
+          description: `נמצאו כתוביות מוכנות ב${LANGUAGES.find((l) => l.code === targetLanguage)?.name}`,
+        });
+      } else {
+        // No existing subtitles found - actually translate
+        console.log('No existing subtitles found, translating...');
+        
+        const { data, error } = await supabase.functions.invoke('translate-subtitles', {
+          body: {
+            movieId: movie?.id,
+            sourceSubtitleId: subtitle.id,
+            targetLanguage,
+          },
+        });
+
+        if (error) throw error;
+
+        clearInterval(progressInterval);
+        setTranslationProgress(100);
+
+        toast({
+          title: 'תרגום הושלם',
+          description: `כתוביות תורגמו ל${LANGUAGES.find((l) => l.code === targetLanguage)?.name}`,
+        });
+      }
 
       await fetchSubtitles();
 
-      toast({
-        title: 'תרגום הושלם',
-        description: `כתוביות תורגמו לשפה חדשה`,
-      });
-
-      setTranslationProgress(100);
     } catch (error) {
-      console.error('Translation error:', error);
+      console.error('Translation/download error:', error);
       toast({
         title: 'שגיאה בתרגום',
         description: 'לא ניתן לתרגם את הכתוביות',
@@ -282,6 +341,7 @@ export default function Movies() {
       });
     } finally {
       setIsTranslating(false);
+      setTranslationProgress(0);
     }
   };
 
