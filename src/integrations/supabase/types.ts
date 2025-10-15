@@ -14,7 +14,124 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      playlists: {
+        Row: {
+          created_at: string | null
+          file_id: string
+          has_auto_detected: boolean | null
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          file_id: string
+          has_auto_detected?: boolean | null
+          id?: string
+        }
+        Update: {
+          created_at?: string | null
+          file_id?: string
+          has_auto_detected?: boolean | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "playlists_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "uploaded_files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      segments: {
+        Row: {
+          artist: string | null
+          created_at: string | null
+          end_time: number
+          file_path: string | null
+          id: string
+          playlist_id: string
+          sort_order: number | null
+          start_time: number
+          status: string | null
+          title: string | null
+        }
+        Insert: {
+          artist?: string | null
+          created_at?: string | null
+          end_time: number
+          file_path?: string | null
+          id?: string
+          playlist_id: string
+          sort_order?: number | null
+          start_time: number
+          status?: string | null
+          title?: string | null
+        }
+        Update: {
+          artist?: string | null
+          created_at?: string | null
+          end_time?: number
+          file_path?: string | null
+          id?: string
+          playlist_id?: string
+          sort_order?: number | null
+          start_time?: number
+          status?: string | null
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "segments_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      uploaded_files: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          file_path: string
+          file_size: number
+          id: string
+          mime_type: string
+          original_filename: string | null
+          youtube_description: string | null
+          youtube_duration: number | null
+          youtube_title: string | null
+          youtube_video_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          file_path: string
+          file_size: number
+          id?: string
+          mime_type: string
+          original_filename?: string | null
+          youtube_description?: string | null
+          youtube_duration?: number | null
+          youtube_title?: string | null
+          youtube_video_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          file_path?: string
+          file_size?: number
+          id?: string
+          mime_type?: string
+          original_filename?: string | null
+          youtube_description?: string | null
+          youtube_duration?: number | null
+          youtube_title?: string | null
+          youtube_video_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

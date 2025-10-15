@@ -8,3 +8,12 @@ verify_jwt = false
 
 [functions.identify-song]
 verify_jwt = false
+
+[functions.analyze-description]
+verify_jwt = false
+
+[functions.export-playlist]
+verify_jwt = false
+
+[functions.cleanup-expired-files]
+verify_jwt = false

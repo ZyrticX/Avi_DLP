@@ -28,6 +28,7 @@ serve(async (req) => {
     console.log(`Downloading YouTube video: ${videoId} with quality: ${quality}`);
 
     let videoData = null;
+    let videoMetadata = null;
     let lastError = null;
 
     // Try each Invidious instance until one works
@@ -48,6 +49,16 @@ serve(async (req) => {
         }
 
         const videoInfo = await infoResponse.json();
+        
+        // Extract metadata
+        videoMetadata = {
+          title: videoInfo.title || '',
+          description: videoInfo.description || '',
+          duration: videoInfo.lengthSeconds || 0,
+          author: videoInfo.author || '',
+        };
+        
+        console.log(`Video metadata: ${videoMetadata.title} (${videoMetadata.duration}s)`);
         
         // Get the best quality video URL
         const formats = videoInfo.adaptiveFormats || videoInfo.formatStreams || [];
@@ -103,6 +114,10 @@ serve(async (req) => {
         'Content-Type': 'video/mp4',
         'Content-Disposition': `attachment; filename="${videoId}.mp4"`,
         'Content-Length': videoData.byteLength.toString(),
+        'X-Video-Title': encodeURIComponent(videoMetadata?.title || ''),
+        'X-Video-Description': encodeURIComponent(videoMetadata?.description || ''),
+        'X-Video-Duration': (videoMetadata?.duration || 0).toString(),
+        'X-Video-Author': encodeURIComponent(videoMetadata?.author || ''),
       },
     });
 

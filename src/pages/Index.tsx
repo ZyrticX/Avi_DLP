@@ -225,6 +225,12 @@ const Index = () => {
   const [viewRange, setViewRange] = useState<{start: number, end: number}>({start: 0, end: 100});
   const [audioData, setAudioData] = useState<number[]>(Array(200).fill(50));
   const [isLoadingVideo, setIsLoadingVideo] = useState(false);
+  const [videoDescription, setVideoDescription] = useState<string>("");
+  const [videoTitle, setVideoTitle] = useState<string>("");
+  const [detectedPlaylist, setDetectedPlaylist] = useState<any>(null);
+  const [showAutoDetectButton, setShowAutoDetectButton] = useState(false);
+  const [uploadedFileId, setUploadedFileId] = useState<string | null>(null);
+  const [currentPlaylistId, setCurrentPlaylistId] = useState<string | null>(null);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const playerRef = useRef<HTMLDivElement>(null);
   const localMediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
@@ -446,6 +452,146 @@ const Index = () => {
     setSegments([...segments, newSegment]);
   };
 
+  // Parse time string (MM:SS or HH:MM:SS) to seconds
+  const parseTime = (timeStr: string): number => {
+    const parts = timeStr.split(':').map(Number);
+    if (parts.length === 2) {
+      // MM:SS
+      return parts[0] * 60 + parts[1];
+    } else if (parts.length === 3) {
+      // HH:MM:SS
+      return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    }
+    return 0;
+  };
+
+  // Auto-detect songs from playlist
+  const handleAutoDetect = async () => {
+    if (!detectedPlaylist || detectedPlaylist.length === 0 || !currentPlaylistId) {
+      toast({
+        title: "אין רשימת שירים",
+        description: "לא נמצאה רשימת שירים בתיאור הסרטון",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      toast({
+        title: "יוצר חיתוכים אוטומטיים...",
+        description: `מעבד ${detectedPlaylist.length} שירים`,
+      });
+
+      const newSegments: any[] = [];
+
+      for (let i = 0; i < detectedPlaylist.length; i++) {
+        const song = detectedPlaylist[i];
+        const nextSong = detectedPlaylist[i + 1];
+        
+        const startSeconds = parseTime(song.time);
+        const endSeconds = nextSong ? parseTime(nextSong.time) : videoDuration;
+
+        // Create segment in state
+        const segment = {
+          id: Date.now() + i,
+          start: startSeconds,
+          end: endSeconds,
+          title: song.artist ? `${song.artist} - ${song.title}` : song.title,
+        };
+        newSegments.push(segment);
+
+        // Save to database
+        await supabase.from('segments').insert({
+          playlist_id: currentPlaylistId,
+          start_time: startSeconds,
+          end_time: endSeconds,
+          title: song.title,
+          artist: song.artist || null,
+          status: 'identified',
+          sort_order: i
+        });
+      }
+
+      setSegments([...segments, ...newSegments]);
+      setShowAutoDetectButton(false);
+
+      // Update playlist as auto-detected
+      await supabase
+        .from('playlists')
+        .update({ has_auto_detected: true })
+        .eq('id', currentPlaylistId);
+
+      toast({
+        title: "חיתוך אוטומטי הושלם! ✨",
+        description: `נוצרו ${newSegments.length} חיתוכים`,
+      });
+    } catch (error) {
+      console.error('Error in auto-detect:', error);
+      toast({
+        title: "שגיאה בחיתוך אוטומטי",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Export all segments as ZIP
+  const handleExportPlaylist = async () => {
+    if (!currentPlaylistId) {
+      toast({
+        title: "אין playlist",
+        description: "אין רשימת חיתוכים לייצוא",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (segments.length === 0) {
+      toast({
+        title: "אין חיתוכים",
+        description: "לא נוצרו חיתוכים לייצוא",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      toast({
+        title: "מייצא playlist...",
+        description: `מארז ${segments.length} קבצים ל-ZIP`,
+      });
+
+      const { data, error } = await supabase.functions.invoke('export-playlist', {
+        body: { playlistId: currentPlaylistId }
+      });
+
+      if (error) throw error;
+
+      // Download the ZIP file
+      const blob = new Blob([data], { type: 'application/zip' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `playlist_${Date.now()}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Playlist יוצא בהצלחה! 🎉",
+        description: "הקובץ הורד למחשב שלך",
+      });
+    } catch (error) {
+      console.error('Error exporting playlist:', error);
+      toast({
+        title: "שגיאה בייצוא",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
@@ -662,14 +808,87 @@ const Index = () => {
         description: "זה עשוי לקחת מספר דקות",
       });
 
-      const { data, error } = await supabase.functions.invoke('download-youtube-video', {
-        body: { videoId, quality: 'best' }
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-youtube-video`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ videoId, quality: 'best' })
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-      const blob = new Blob([data], { type: 'video/mp4' });
+      // Extract metadata from headers
+      const title = decodeURIComponent(response.headers.get('X-Video-Title') || '');
+      const description = decodeURIComponent(response.headers.get('X-Video-Description') || '');
+      const duration = parseInt(response.headers.get('X-Video-Duration') || '0');
+
+      setVideoTitle(title);
+      setVideoDescription(description);
+      
+      console.log('Video metadata:', { title, duration, hasDescription: !!description });
+
+      const blob = await response.blob();
       const file = new File([blob], `youtube_${videoId}.mp4`, { type: 'video/mp4' });
+
+      // Save to database
+      const { data: fileRecord, error: dbError } = await supabase
+        .from('uploaded_files')
+        .insert({
+          file_path: `youtube_${videoId}.mp4`,
+          file_size: file.size,
+          mime_type: 'video/mp4',
+          original_filename: title || `youtube_${videoId}.mp4`,
+          youtube_video_id: videoId,
+          youtube_title: title,
+          youtube_description: description,
+          youtube_duration: duration
+        })
+        .select()
+        .single();
+
+      if (dbError) {
+        console.error('Error saving to database:', dbError);
+      } else {
+        setUploadedFileId(fileRecord.id);
+        
+        // Create playlist record
+        const { data: playlistRecord, error: playlistError } = await supabase
+          .from('playlists')
+          .insert({
+            file_id: fileRecord.id,
+            has_auto_detected: false
+          })
+          .select()
+          .single();
+
+        if (!playlistError && playlistRecord) {
+          setCurrentPlaylistId(playlistRecord.id);
+        }
+      }
+
+      // Analyze description for playlist
+      if (description) {
+        console.log('Analyzing description for playlist...');
+        const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-description', {
+          body: { description }
+        });
+
+        if (!analysisError && analysisData) {
+          console.log('Analysis result:', analysisData);
+          if (analysisData.hasPlaylist && analysisData.songs && analysisData.songs.length > 0) {
+            setDetectedPlaylist(analysisData.songs);
+            setShowAutoDetectButton(true);
+            toast({
+              title: "זוהה רשימת שירים! 🎵",
+              description: `נמצאו ${analysisData.songs.length} שירים בתיאור הסרטון`,
+            });
+          }
+        }
+      }
 
       toast({
         title: "הסרטון הורד בהצלחה!",
@@ -1740,15 +1959,23 @@ const Index = () => {
                   </Button>
                   <Button
                     size="icon"
-                    variant="outline"
-                    className="h-10 w-10 rounded-full bg-black/90 border-white/30 hover:bg-white/20 shadow-lg"
-                    title="זיהוי שיר אוטומטי"
+                    variant={showAutoDetectButton ? "default" : "outline"}
+                    className={`h-10 w-10 rounded-full ${showAutoDetectButton ? 'bg-primary hover:bg-primary/90 animate-pulse' : 'bg-black/90 border-white/30 hover:bg-white/20'} shadow-lg`}
+                    title={showAutoDetectButton ? "זיהוי אוטומטי של שירים - לחץ כאן!" : "זיהוי שיר אוטומטי"}
                     onClick={(e) => {
                       e.stopPropagation();
-                      console.log('Song detection clicked');
+                      if (showAutoDetectButton) {
+                        handleAutoDetect();
+                      } else {
+                        toast({
+                          title: "לא זוהתה רשימת שירים",
+                          description: "הדבק לינק יוטיוב עם תיאור המכיל רשימת שירים",
+                        });
+                      }
                     }}
+                    disabled={!showAutoDetectButton && !videoId}
                   >
-                    <Music className="h-5 w-5 text-white" />
+                    <Wand2 className="h-5 w-5 text-white" />
                   </Button>
                 </div>
                 
