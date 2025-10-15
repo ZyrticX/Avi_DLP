@@ -3,6 +3,12 @@ project_id = "jdyekwizsviuyklsrsky"
 [functions.search-subtitles]
 verify_jwt = false
 
+[functions.download-subtitle]
+verify_jwt = false
+
+[functions.translate-subtitles]
+verify_jwt = false
+
 [functions.download-youtube-video]
 verify_jwt = false
 
