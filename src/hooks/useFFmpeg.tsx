@@ -564,6 +564,114 @@ export const useFFmpeg = () => {
     }
   };
 
+  interface BurnSubtitlesOptions {
+    fontName?: string;
+    fontSize?: number;
+    fontColor?: string;
+    position?: 'top' | 'middle' | 'bottom';
+    backgroundColor?: string;
+    backgroundOpacity?: number;
+  }
+
+  const burnSubtitles = async (
+    videoFile: File,
+    subtitleFile: File,
+    options: BurnSubtitlesOptions = {}
+  ): Promise<Blob | null> => {
+    if (!isReady) {
+      toast({
+        title: "FFmpeg לא מוכן",
+        description: "אנא המתן לטעינת מנוע העיבוד",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    setIsLoading(true);
+    setProgress(0);
+    const ffmpeg = ffmpegRef.current;
+
+    try {
+      const {
+        fontName = 'Arial',
+        fontSize = 24,
+        fontColor = 'white',
+        position = 'bottom',
+        backgroundColor = 'black',
+        backgroundOpacity = 0.5,
+      } = options;
+
+      // Write input files to FFmpeg virtual filesystem
+      await ffmpeg.writeFile('input.mp4', await fetchFile(videoFile));
+      await ffmpeg.writeFile('subtitles.srt', await fetchFile(subtitleFile));
+
+      // Build subtitle filter with styling
+      const yPosition = position === 'top' ? 'h*0.1' : 
+                       position === 'middle' ? 'h*0.5' : 
+                       'h-h*0.15'; // bottom
+
+      const bgAlpha = Math.round(backgroundOpacity * 255).toString(16).padStart(2, '0');
+      
+      const subtitleStyle = [
+        `FontName=${fontName}`,
+        `FontSize=${fontSize}`,
+        `PrimaryColour=&H${fontColor === 'white' ? 'FFFFFF' : 
+                           fontColor === 'yellow' ? '00FFFF' : 
+                           fontColor === 'black' ? '000000' : 'FFFFFF'}`,
+        `BackColour=&H${bgAlpha}${backgroundColor === 'black' ? '000000' : 
+                                  backgroundColor === 'white' ? 'FFFFFF' : '000000'}`,
+        `Alignment=${position === 'top' ? '8' : position === 'middle' ? '5' : '2'}`,
+        `MarginV=${position === 'top' ? '20' : '40'}`,
+      ].join(',');
+
+      console.log('Burning subtitles with options:', { fontName, fontSize, fontColor, position });
+
+      // Execute FFmpeg with subtitle burn-in
+      await ffmpeg.exec([
+        '-i', 'input.mp4',
+        '-vf', `subtitles=subtitles.srt:force_style='${subtitleStyle}'`,
+        '-c:a', 'copy', // Copy audio without re-encoding
+        '-c:v', 'libx264',
+        '-preset', 'medium',
+        '-crf', '23',
+        'output.mp4'
+      ]);
+
+      // Read output file
+      const data = await ffmpeg.readFile('output.mp4');
+      const blob = new Blob([new Uint8Array(data as Uint8Array).buffer], { 
+        type: 'video/mp4' 
+      });
+
+      // Cleanup
+      await ffmpeg.deleteFile('input.mp4');
+      await ffmpeg.deleteFile('subtitles.srt');
+      await ffmpeg.deleteFile('output.mp4');
+
+      setIsLoading(false);
+      setProgress(0);
+
+      toast({
+        title: "הדבקת כתוביות הושלמה!",
+        description: "הכתוביות הודבקו לוידאו בהצלחה",
+      });
+
+      return blob;
+    } catch (error) {
+      console.error('Burn subtitles error:', error);
+      setIsLoading(false);
+      setProgress(0);
+      
+      toast({
+        title: "שגיאה בהדבקת כתוביות",
+        description: "לא ניתן להדביק את הכתוביות. נסה שנית.",
+        variant: "destructive",
+      });
+      
+      return null;
+    }
+  };
+
   const downloadBlob = (blob: Blob, fileName: string) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -586,6 +694,7 @@ export const useFFmpeg = () => {
     cropVideo,
     applyVideoEffect,
     removeVocals,
+    burnSubtitles,
     downloadBlob,
   };
 };

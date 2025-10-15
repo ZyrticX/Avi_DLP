@@ -1409,6 +1409,19 @@ const Index = () => {
         <p className="text-xl md:text-2xl text-muted-foreground mb-6">
           Cut and edit YouTube videos easily - no cost
         </p>
+        
+        {/* Navigation to Movies Page */}
+        <div className="flex justify-center gap-4 mb-6">
+          <Button 
+            onClick={() => navigate('/movies')}
+            size="lg"
+            className="bg-gradient-to-r from-primary to-secondary text-primary-foreground shadow-glow"
+          >
+            <Video className="w-5 h-5 mr-2" />
+            תרגום כתוביות לסרטים
+          </Button>
+        </div>
+
         {/* FFmpeg Status Indicator */}
         {!isFFmpegReady && (
           <div className="mt-6 flex items-center justify-center gap-3 text-sm">
