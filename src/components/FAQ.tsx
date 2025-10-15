@@ -51,7 +51,7 @@ const FAQ = () => {
   ];
 
   return (
-    <div className="w-full py-16 px-4 bg-gradient-to-br from-background via-background to-background/80">
+    <div className="w-full py-16 px-4 bg-gradient-to-br from-background via-background to-background/80" dir="rtl">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-3 mb-4">
