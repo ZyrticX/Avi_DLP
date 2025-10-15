@@ -1,5 +1,8 @@
 project_id = "jdyekwizsviuyklsrsky"
 
+[functions.search-subtitles]
+verify_jwt = false
+
 [functions.download-youtube-video]
 verify_jwt = false
 
