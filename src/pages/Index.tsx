@@ -535,61 +535,25 @@ const Index = () => {
     }
   };
 
-  // Export all segments as ZIP
-  const handleExportPlaylist = async () => {
-    if (!currentPlaylistId) {
-      toast({
-        title: "אין playlist",
-        description: "אין רשימת חיתוכים לייצוא",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  // Merge all segments into one long file
+  const handleMergeAllSegments = async () => {
     if (segments.length === 0) {
       toast({
         title: "אין חיתוכים",
-        description: "לא נוצרו חיתוכים לייצוא",
+        description: "לא נוצרו חיתוכים למיזוג",
         variant: "destructive",
       });
       return;
     }
 
-    try {
-      toast({
-        title: "מייצא playlist...",
-        description: `מארז ${segments.length} קבצים ל-ZIP`,
-      });
+    toast({
+      title: "מאחד את כל הסגמנטים...",
+      description: `מחבר ${segments.length} חלקים לקובץ אחד עם טרנזיציות חלקות`,
+      duration: 5000,
+    });
 
-      const { data, error } = await supabase.functions.invoke('export-playlist', {
-        body: { playlistId: currentPlaylistId }
-      });
-
-      if (error) throw error;
-
-      // Download the ZIP file
-      const blob = new Blob([data], { type: 'application/zip' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `playlist_${Date.now()}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: "Playlist יוצא בהצלחה! 🎉",
-        description: "הקובץ הורד למחשב שלך",
-      });
-    } catch (error) {
-      console.error('Error exporting playlist:', error);
-      toast({
-        title: "שגיאה בייצוא",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
+    // Use the existing merge function
+    await handleMergeAndDownload();
   };
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -2726,14 +2690,21 @@ const Index = () => {
               <div className="bg-gradient-to-r from-accent/5 to-primary/5 p-4 rounded-lg border border-accent/20">
                 <h4 className={`${isMobile ? 'text-lg' : 'text-xl'} font-semibold mb-4 flex items-center gap-2`}>
                   <Palette className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-accent`} />
-                  Mix Settings
+                  הגדרות טרנזיציה (Fade)
                 </h4>
+                
+                <div className="mb-4 p-3 bg-accent/10 rounded-lg border border-accent/20">
+                  <p className="text-sm text-muted-foreground">
+                    💡 Fade In/Out יוחלו <strong>רק על הקטע הראשון והאחרון</strong> בעת איחוד כל הקטעים לקובץ אחד.
+                    זה יוצר טרנזיציה חלקה בהתחלה ובסוף הקובץ המאוחד.
+                  </p>
+                </div>
                 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className={`${isMobile ? 'text-sm' : 'text-base'} font-medium flex items-center gap-2`}>
                       <Clock className="w-4 h-4" />
-                      Fade In ({fadeInDuration[0]}s)
+                      Fade In בהתחלה ({fadeInDuration[0]}s)
                     </label>
                     <Slider
                       value={fadeInDuration}
@@ -2747,7 +2718,7 @@ const Index = () => {
                   <div className="space-y-2">
                     <label className={`${isMobile ? 'text-sm' : 'text-base'} font-medium flex items-center gap-2`}>
                       <Clock className="w-4 h-4" />
-                      Fade Out ({fadeOutDuration[0]}s)
+                      Fade Out בסוף ({fadeOutDuration[0]}s)
                     </label>
                     <Slider
                       value={fadeOutDuration}
@@ -2782,17 +2753,22 @@ const Index = () => {
                 disabled={!isFFmpegReady || isProcessing || !currentEditingFile || segments.length === 0}
               >
                 <Download className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} mr-2`} />
-                {isFFmpegReady ? 'Download All Segments' : 'טוען FFmpeg...'}
+                {isFFmpegReady ? 'הורד קטעים בנפרד' : 'טוען FFmpeg...'}
               </Button>
               <Button 
-                variant="outline" 
+                variant="default" 
                 size={isMobile ? "default" : "lg"} 
-                className={`w-full ${isMobile ? 'text-base' : 'text-lg'}`}
-                onClick={handleMergeAndDownload}
+                className={`w-full ${isMobile ? 'text-base' : 'text-lg'} bg-gradient-to-r from-primary to-accent hover:opacity-90`}
+                onClick={handleMergeAllSegments}
                 disabled={!isFFmpegReady || isProcessing || !currentEditingFile || segments.length === 0}
               >
                 <Layers3 className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} mr-2`} />
-                Merge Segments with Mix
+                <div className="flex flex-col items-start">
+                  <span>איחוד לקובץ אחד ארוך 🎵</span>
+                  <span className="text-xs opacity-80">
+                    {segments.length > 0 ? `${segments.length} קטעים → 1 קובץ עם טרנזיציות` : 'חבר את כל הקטעים'}
+                  </span>
+                </div>
               </Button>
               
               {/* הורדת כתוביות ודיבוב בנפרד */}
