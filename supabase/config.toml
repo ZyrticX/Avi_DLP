@@ -21,5 +21,8 @@ verify_jwt = false
 [functions.analyze-description]
 verify_jwt = false
 
+[functions.adjust-subtitle-timing]
+verify_jwt = false
+
 [functions.cleanup-expired-files]
 verify_jwt = false

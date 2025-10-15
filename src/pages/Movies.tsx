@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Film, Languages, Download, Upload, Search } from 'lucide-react';
+import { ArrowLeft, Film, Languages, Download, Upload, Search, Clock, Trash2, Loader2, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useFFmpeg } from '@/hooks/useFFmpeg';
@@ -70,6 +71,9 @@ export default function Movies() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [translationProgress, setTranslationProgress] = useState(0);
+  const [timingOffset, setTimingOffset] = useState<number>(0);
+  const [isAdjustingTiming, setIsAdjustingTiming] = useState(false);
+  const [selectedTimingSubtitle, setSelectedTimingSubtitle] = useState<Subtitle | null>(null);
 
   // Burn-in settings
   const [fontName, setFontName] = useState('Arial');
@@ -345,6 +349,69 @@ export default function Movies() {
     }
   };
 
+  const handleDeleteSubtitle = async (subtitleId: string) => {
+    try {
+      const { error } = await supabase.from('subtitles').delete().eq('id', subtitleId);
+      if (error) throw error;
+
+      await fetchSubtitles();
+      toast({
+        title: 'כתוביות נמחקו',
+        description: 'הכתוביות הוסרו בהצלחה',
+      });
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast({
+        title: 'שגיאה במחיקה',
+        description: 'לא ניתן למחוק את הכתוביות',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleAdjustTiming = async () => {
+    if (!selectedTimingSubtitle || timingOffset === 0) {
+      toast({
+        title: 'נתונים חסרים',
+        description: 'נא לבחור כתוביות ולהזין אופסט זמן',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsAdjustingTiming(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('adjust-subtitle-timing', {
+        body: {
+          subtitleId: selectedTimingSubtitle.id,
+          offsetSeconds: timingOffset,
+        },
+      });
+
+      if (error) throw error;
+
+      await fetchSubtitles();
+
+      toast({
+        title: 'זמני כתוביות עודכנו',
+        description: `הכתוביות הוזזו ב-${timingOffset} שניות`,
+      });
+
+      setTimingOffset(0);
+      setSelectedTimingSubtitle(null);
+    } catch (error) {
+      console.error('Timing adjustment error:', error);
+      toast({
+        title: 'שגיאה בהתאמת זמנים',
+        description: 'לא ניתן להתאים את זמני הכתוביות',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsAdjustingTiming(false);
+    }
+  };
+
   const handleBurnSubtitles = async () => {
     if (!uploadedFile || !selectedSubtitle) {
       toast({
@@ -614,24 +681,48 @@ export default function Movies() {
                   {subtitles.map((sub) => (
                     <div key={sub.id} className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <Badge variant={sub.is_translated ? 'secondary' : 'default'}>
-                            {LANGUAGES.find((l) => l.code === sub.language)?.flag}{' '}
-                            {LANGUAGES.find((l) => l.code === sub.language)?.name}
-                          </Badge>
-                          {sub.is_translated && (
-                            <Badge variant="outline" className="mr-2">
-                              מתורגם מ-{sub.source_language}
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Badge variant={sub.is_translated ? 'secondary' : 'default'}>
+                              {LANGUAGES.find((l) => l.code === sub.language)?.flag}{' '}
+                              {LANGUAGES.find((l) => l.code === sub.language)?.name}
                             </Badge>
-                          )}
+                            {sub.is_translated && (
+                              <Badge variant="outline">
+                                מתורגם מ-{sub.source_language}
+                              </Badge>
+                            )}
+                            {sub.file_path.includes('_offset') && (
+                              <Badge variant="outline" className="text-xs">
+                                זמנים מותאמים
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-                        <Button
-                          size="sm"
-                          variant={selectedSubtitle?.id === sub.id ? 'default' : 'outline'}
-                          onClick={() => setSelectedSubtitle(sub)}
-                        >
-                          {selectedSubtitle?.id === sub.id ? 'נבחר' : 'בחר להדבקה'}
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setSelectedTimingSubtitle(sub)}
+                          >
+                            <Clock className="h-4 w-4 mr-1" />
+                            התאם זמנים
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDeleteSubtitle(sub.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={selectedSubtitle?.id === sub.id ? 'default' : 'outline'}
+                            onClick={() => setSelectedSubtitle(sub)}
+                          >
+                            {selectedSubtitle?.id === sub.id ? 'נבחר' : 'בחר להדבקה'}
+                          </Button>
+                        </div>
                       </div>
 
                       {!sub.is_translated && (
@@ -677,6 +768,64 @@ export default function Movies() {
               <Button onClick={() => setStep('export')} className="w-full" disabled={!selectedSubtitle}>
                 המשך להדבקה וייצוא
               </Button>
+
+              {/* Timing Adjustment Dialog */}
+              <Dialog open={selectedTimingSubtitle !== null} onOpenChange={(open) => !open && setSelectedTimingSubtitle(null)}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>התאמת זמני כתוביות</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <p className="text-sm text-muted-foreground">
+                      אם הכתוביות מאחרות או מקדימות את הדיבור, תוכל להתאים את הזמנים כאן.
+                    </p>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">
+                        אופסט זמן (בשניות)
+                      </Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={timingOffset}
+                        onChange={(e) => setTimingOffset(parseFloat(e.target.value) || 0)}
+                        placeholder="לדוגמה: -2.5 או +3"
+                        className="text-center"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        • מספר שלילי (-) להזיז את הכתוביות קדימה בזמן<br />
+                        • מספר חיובי (+) להזיז את הכתוביות אחורה בזמן
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedTimingSubtitle(null);
+                        setTimingOffset(0);
+                      }}
+                    >
+                      ביטול
+                    </Button>
+                    <Button
+                      onClick={handleAdjustTiming}
+                      disabled={isAdjustingTiming || timingOffset === 0}
+                    >
+                      {isAdjustingTiming ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          מתאים...
+                        </>
+                      ) : (
+                        <>
+                          <Clock className="h-4 w-4 mr-2" />
+                          התאם זמנים
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </CardContent>
           </Card>
         )}
