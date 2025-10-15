@@ -485,6 +485,7 @@ const Index = () => {
       start,
       end,
       title: `Segment ${segments.length + 1}`,
+      status: 'pending' as const,
     };
 
     setSegments([...segments, newSegment]);
