@@ -212,11 +212,11 @@ const Index = () => {
   const [cuttingMode, setCuttingMode] = useState<"video" | "audio" | null>(null);
   const [showCuttingOptions, setShowCuttingOptions] = useState(false);
   const [currentEditingFile, setCurrentEditingFile] = useState<{file: File, url: string, type: 'audio' | 'video'} | null>(null);
-  const [selectedAudioFormat, setSelectedAudioFormat] = useState<AudioFormat>('aac');
-  const [selectedVideoResolution, setSelectedVideoResolution] = useState<VideoResolution>('1080p');
+  const [selectedAudioFormats, setSelectedAudioFormats] = useState<AudioFormat[]>(['aac']);
+  const [selectedVideoResolutions, setSelectedVideoResolutions] = useState<VideoResolution[]>(['1080p']);
+  const [selectedAudioQualities, setSelectedAudioQualities] = useState<string[]>(['320k']);
   const [selectedEffect, setSelectedEffect] = useState<'grayscale' | 'sepia' | 'negative' | 'blur' | 'sharpen'>('grayscale');
   const [cropSettings, setCropSettings] = useState({ width: 1920, height: 1080, x: 0, y: 0 });
-  const [youtubeQuality, setYoutubeQuality] = useState<'best' | '720p' | '480p' | '360p'>('best');
   const [processedBlob, setProcessedBlob] = useState<Blob | null>(null);
   const [showContinueDialog, setShowContinueDialog] = useState(false);
   const [processedFilename, setProcessedFilename] = useState<string>("");
@@ -663,7 +663,7 @@ const Index = () => {
       });
 
       const { data, error } = await supabase.functions.invoke('download-youtube-video', {
-        body: { videoId, quality: youtubeQuality }
+        body: { videoId, quality: 'best' }
       });
 
       if (error) throw error;
@@ -716,17 +716,17 @@ const Index = () => {
     }
 
     const isAudio = cuttingMode === 'audio' || fileToProcess.type === 'audio';
-    const format = isAudio ? selectedAudioFormat : 'mp4';
+    const format = isAudio ? selectedAudioFormats[0] : 'mp4';
     
     const blob = await cutVideo(
       fileToProcess.file,
       segment,
       format,
-      isAudio ? undefined : selectedVideoResolution
+      isAudio ? undefined : selectedVideoResolutions[0]
     );
 
     if (blob) {
-      const extension = isAudio ? selectedAudioFormat : 'mp4';
+      const extension = isAudio ? selectedAudioFormats[0] : 'mp4';
       const filename = `${segment.title || 'segment'}.${extension}`;
       setProcessedBlob(blob);
       setProcessedFilename(filename);
@@ -786,7 +786,7 @@ const Index = () => {
     }
 
     const isAudio = cuttingMode === 'audio' || fileToProcess.type === 'audio';
-    const format = isAudio ? selectedAudioFormat : 'mp4';
+    const format = isAudio ? selectedAudioFormats[0] : 'mp4';
 
     const blob = await mergeSegments(
       fileToProcess.file,
@@ -797,7 +797,7 @@ const Index = () => {
     );
 
     if (blob) {
-      const extension = isAudio ? selectedAudioFormat : 'mp4';
+      const extension = isAudio ? selectedAudioFormats[0] : 'mp4';
       const filename = `merged_${Date.now()}.${extension}`;
       setProcessedBlob(blob);
       setProcessedFilename(filename);
@@ -833,9 +833,9 @@ const Index = () => {
       description: "זה עשוי לקחת מספר שניות",
     });
 
-    const blob = await extractAudio(fileToProcess.file, selectedAudioFormat, '320k');
+    const blob = await extractAudio(fileToProcess.file, selectedAudioFormats[0], selectedAudioQualities[0]);
     if (blob) {
-      const filename = `audio.${selectedAudioFormat}`;
+      const filename = `audio.${selectedAudioFormats[0]}`;
       setProcessedBlob(blob);
       setProcessedFilename(filename);
       setShowContinueDialog(true);
@@ -874,9 +874,9 @@ const Index = () => {
       description: "זה עשוי לקחת מספר שניות",
     });
 
-    const blob = await normalizeAudio(fileToProcess.file, selectedAudioFormat);
+    const blob = await normalizeAudio(fileToProcess.file, selectedAudioFormats[0]);
     if (blob) {
-      const filename = `normalized.${selectedAudioFormat}`;
+      const filename = `normalized.${selectedAudioFormats[0]}`;
       setProcessedBlob(blob);
       setProcessedFilename(filename);
       setShowContinueDialog(true);
@@ -1521,8 +1521,8 @@ const Index = () => {
                           disabled={!currentEditingFile || isProcessing}
                           onClick={async () => {
                             if (!currentEditingFile) return;
-                            const blob = await cutVideo(currentEditingFile.file, { id: 0, start: 0, end: videoDuration, title: 'full' }, 'mp4', selectedVideoResolution);
-                            if (blob) downloadBlob(blob, `quality_${selectedVideoResolution}.mp4`);
+                            const blob = await cutVideo(currentEditingFile.file, { id: 0, start: 0, end: videoDuration, title: 'full' }, 'mp4', selectedVideoResolutions[0]);
+                            if (blob) downloadBlob(blob, `quality_${selectedVideoResolutions[0]}.mp4`);
                           }}
                         >
                           <Settings className="w-3 h-3 mr-1" />
@@ -1545,8 +1545,8 @@ const Index = () => {
                           disabled={!currentEditingFile || isProcessing}
                           onClick={async () => {
                             if (!currentEditingFile) return;
-                            const blob = await extractAudio(currentEditingFile.file, selectedAudioFormat);
-                            if (blob) downloadBlob(blob, `audio.${selectedAudioFormat}`);
+                            const blob = await extractAudio(currentEditingFile.file, selectedAudioFormats[0]);
+                            if (blob) downloadBlob(blob, `audio.${selectedAudioFormats[0]}`);
                           }}
                         >
                           <Headphones className="w-3 h-3 mr-1" />
@@ -1559,8 +1559,8 @@ const Index = () => {
                           disabled={!currentEditingFile || isProcessing}
                           onClick={async () => {
                             if (!currentEditingFile) return;
-                            const blob = await normalizeAudio(currentEditingFile.file, selectedAudioFormat);
-                            if (blob) downloadBlob(blob, `normalized.${selectedAudioFormat}`);
+                            const blob = await normalizeAudio(currentEditingFile.file, selectedAudioFormats[0]);
+                            if (blob) downloadBlob(blob, `normalized.${selectedAudioFormats[0]}`);
                           }}
                         >
                           <Volume2 className="w-3 h-3 mr-1" />
@@ -1587,8 +1587,8 @@ const Index = () => {
                           disabled={!currentEditingFile || isProcessing}
                           onClick={async () => {
                             if (!currentEditingFile) return;
-                            const blob = await extractAudio(currentEditingFile.file, selectedAudioFormat, '320k');
-                            if (blob) downloadBlob(blob, `hq_audio.${selectedAudioFormat}`);
+                            const blob = await extractAudio(currentEditingFile.file, selectedAudioFormats[0], selectedAudioQualities[0]);
+                            if (blob) downloadBlob(blob, `hq_audio.${selectedAudioFormats[0]}`);
                           }}
                         >
                           <Settings className="w-3 h-3 mr-1" />
@@ -2247,7 +2247,7 @@ const Index = () => {
                           currentEditingFile.file, 
                           { id: 0, start, end, title: 'cut' }, 
                           'mp4', 
-                          selectedVideoResolution
+                          selectedVideoResolutions[0]
                         );
                       } else {
                         toast({
@@ -2403,143 +2403,85 @@ const Index = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-3">
-                <label className={`${isMobile ? 'text-base' : 'text-lg'} font-medium`}>Audio Format</label>
-                <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-3'} gap-2`}>
-                  <Button 
-                    variant={selectedAudioFormat === 'mp3' ? 'default' : 'outline'} 
-                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
-                    onClick={() => setSelectedAudioFormat('mp3')}
-                  >
-                    MP3
-                  </Button>
-                  <Button 
-                    variant={selectedAudioFormat === 'wav' ? 'default' : 'outline'} 
-                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
-                    onClick={() => setSelectedAudioFormat('wav')}
-                  >
-                    WAV
-                  </Button>
-                  <Button 
-                    variant={selectedAudioFormat === 'flac' ? 'default' : 'outline'} 
-                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
-                    onClick={() => setSelectedAudioFormat('flac')}
-                  >
-                    FLAC
-                  </Button>
-                  <Button 
-                    variant={selectedAudioFormat === 'aac' ? 'default' : 'outline'} 
-                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
-                    onClick={() => setSelectedAudioFormat('aac')}
-                  >
-                    AAC
-                  </Button>
-                  <Button 
-                    variant={selectedAudioFormat === 'ogg' ? 'default' : 'outline'} 
-                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
-                    onClick={() => setSelectedAudioFormat('ogg')}
-                  >
-                    OGG
-                  </Button>
-                  <Button 
-                    variant={selectedAudioFormat === 'm4a' ? 'default' : 'outline'} 
-                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
-                    onClick={() => setSelectedAudioFormat('m4a')}
-                  >
-                    M4A
-                  </Button>
+              {/* Audio Format - בשורה אחת */}
+              <div className="space-y-2">
+                <label className="text-base font-medium">Audio Format</label>
+                <div className="flex flex-wrap gap-2">
+                  {(['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a'] as AudioFormat[]).map((format) => (
+                    <label key={format} className="flex items-center gap-1.5 cursor-pointer bg-muted/50 px-3 py-1.5 rounded border border-border hover:bg-muted transition-colors">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedAudioFormats.includes(format)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            if (selectedAudioFormats.length < 2) {
+                              setSelectedAudioFormats([...selectedAudioFormats, format]);
+                            }
+                          } else {
+                            setSelectedAudioFormats(selectedAudioFormats.filter(f => f !== format));
+                          }
+                        }}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm font-medium uppercase">{format}</span>
+                    </label>
+                  ))}
                 </div>
+                <p className="text-xs text-muted-foreground">ניתן לבחור עד 2 פורמטים</p>
               </div>
-              <div className="space-y-3">
-                <label className={`${isMobile ? 'text-base' : 'text-lg'} font-medium`}>Audio Quality</label>
-                <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-3'} gap-2`}>
-                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>96k</Button>
-                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>128k</Button>
-                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>192k</Button>
-                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>256k</Button>
-                  <Button className={`${isMobile ? 'text-sm' : 'text-lg'} bg-accent hover:bg-accent/90`}>320k</Button>
-                  <Button variant="outline" className={`${isMobile ? 'text-sm' : 'text-lg'}`}>FLAC</Button>
+
+              {/* Audio Quality - בשורה אחת */}
+              <div className="space-y-2">
+                <label className="text-base font-medium">Audio Quality</label>
+                <div className="flex flex-wrap gap-2">
+                  {['64k', '96k', '128k', '192k', '256k', '320k', 'original'].map((quality) => (
+                    <label key={quality} className="flex items-center gap-1.5 cursor-pointer bg-muted/50 px-3 py-1.5 rounded border border-border hover:bg-muted transition-colors">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedAudioQualities.includes(quality)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            if (selectedAudioQualities.length < 2) {
+                              setSelectedAudioQualities([...selectedAudioQualities, quality]);
+                            }
+                          } else {
+                            setSelectedAudioQualities(selectedAudioQualities.filter(q => q !== quality));
+                          }
+                        }}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm font-medium">{quality === 'original' ? 'מקסימום' : quality}</span>
+                    </label>
+                  ))}
                 </div>
+                <p className="text-xs text-muted-foreground">ניתן לבחור עד 2 איכויות</p>
               </div>
-              <div className="space-y-3">
-                <label className={`${isMobile ? 'text-base' : 'text-lg'} font-medium`}>Video Resolution</label>
-                <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-3'} gap-2`}>
-                  <Button 
-                    variant={selectedVideoResolution === '480p' ? 'default' : 'outline'} 
-                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
-                    onClick={() => setSelectedVideoResolution('480p')}
-                  >
-                    480p
-                  </Button>
-                  <Button 
-                    variant={selectedVideoResolution === '720p' ? 'default' : 'outline'} 
-                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
-                    onClick={() => setSelectedVideoResolution('720p')}
-                  >
-                    720p
-                  </Button>
-                  <Button 
-                    variant={selectedVideoResolution === '1080p' ? 'default' : 'outline'} 
-                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
-                    onClick={() => setSelectedVideoResolution('1080p')}
-                  >
-                    1080p
-                  </Button>
-                  <Button 
-                    variant={selectedVideoResolution === '1440p' ? 'default' : 'outline'} 
-                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
-                    onClick={() => setSelectedVideoResolution('1440p')}
-                  >
-                    1440p
-                  </Button>
-                  <Button 
-                    variant={selectedVideoResolution === '4k' ? 'default' : 'outline'} 
-                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
-                    onClick={() => setSelectedVideoResolution('4k')}
-                  >
-                    4K
-                  </Button>
-                  <Button 
-                    variant={selectedVideoResolution === '8k' ? 'default' : 'outline'} 
-                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
-                    onClick={() => setSelectedVideoResolution('8k')}
-                  >
-                    8K
-                  </Button>
+
+              {/* Video Resolution - בשורה אחת */}
+              <div className="space-y-2">
+                <label className="text-base font-medium">Video Resolution</label>
+                <div className="flex flex-wrap gap-2">
+                  {(['480p', '720p', '1080p', '1440p', '4k', '8k'] as VideoResolution[]).map((resolution) => (
+                    <label key={resolution} className="flex items-center gap-1.5 cursor-pointer bg-muted/50 px-3 py-1.5 rounded border border-border hover:bg-muted transition-colors">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedVideoResolutions.includes(resolution)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            if (selectedVideoResolutions.length < 2) {
+                              setSelectedVideoResolutions([...selectedVideoResolutions, resolution]);
+                            }
+                          } else {
+                            setSelectedVideoResolutions(selectedVideoResolutions.filter(r => r !== resolution));
+                          }
+                        }}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm font-medium">{resolution.toUpperCase()}</span>
+                    </label>
+                  ))}
                 </div>
-              </div>
-              <div className="space-y-3">
-                <label className={`${isMobile ? 'text-base' : 'text-lg'} font-medium`}>YouTube Download Quality</label>
-                <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-4'} gap-2`}>
-                  <Button 
-                    variant={youtubeQuality === '360p' ? 'default' : 'outline'} 
-                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
-                    onClick={() => setYoutubeQuality('360p')}
-                  >
-                    360p
-                  </Button>
-                  <Button 
-                    variant={youtubeQuality === '480p' ? 'default' : 'outline'} 
-                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
-                    onClick={() => setYoutubeQuality('480p')}
-                  >
-                    480p
-                  </Button>
-                  <Button 
-                    variant={youtubeQuality === '720p' ? 'default' : 'outline'} 
-                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
-                    onClick={() => setYoutubeQuality('720p')}
-                  >
-                    720p
-                  </Button>
-                  <Button 
-                    variant={youtubeQuality === 'best' ? 'default' : 'outline'} 
-                    className={`${isMobile ? 'text-sm' : 'text-lg'}`}
-                    onClick={() => setYoutubeQuality('best')}
-                  >
-                    Best
-                  </Button>
-                </div>
+                <p className="text-xs text-muted-foreground">ניתן לבחור עד 2 רזולוציות</p>
               </div>
             </CardContent>
           </Card>
