@@ -78,7 +78,17 @@ const formatTime = (seconds: number): string => {
 
 // SortableItem component for drag and drop segments
 const SortableItem = ({ segment, index, onEdit, onPlay, onDelete, onDownload, onIdentify }: {
-  segment: {id: number, start: number, end: number, title: string, blob?: Blob, downloadUrl?: string},
+  segment: {
+    id: number, 
+    start: number, 
+    end: number, 
+    title: string, 
+    blob?: Blob, 
+    downloadUrl?: string,
+    status?: 'pending' | 'processing' | 'identified' | 'ready',
+    dbId?: string,
+    artist?: string
+  },
   index: number,
   onEdit: (id: number, newTitle: string) => void,
   onPlay: (id: number) => void,
@@ -107,6 +117,20 @@ const SortableItem = ({ segment, index, onEdit, onPlay, onDelete, onDownload, on
     setIsEditing(false);
   };
 
+  // Get badge color and text based on status
+  const getStatusBadge = () => {
+    switch (segment.status) {
+      case 'processing':
+        return <Badge variant="secondary" className="bg-blue-500/20 text-blue-300">⚙️ מעבד</Badge>;
+      case 'identified':
+        return <Badge variant="secondary" className="bg-green-500/20 text-green-300">✓ מזוהה</Badge>;
+      case 'ready':
+        return <Badge variant="secondary" className="bg-purple-500/20 text-purple-300">✨ מוכן</Badge>;
+      default:
+        return <Badge variant="outline" className="text-muted-foreground">⏳ ממתין</Badge>;
+    }
+  };
+
   return (
     <div 
       ref={setNodeRef} 
@@ -123,6 +147,7 @@ const SortableItem = ({ segment, index, onEdit, onPlay, onDelete, onDownload, on
           <GripVertical className="w-5 h-5 text-muted-foreground" />
         </div>
         <span className="text-2xl font-bold text-secondary">{index + 1}</span>
+        {getStatusBadge()}
         <div className="flex-1 text-muted-foreground">
           {formatTime(segment.start)} - {formatTime(segment.end)}
         </div>
@@ -174,7 +199,10 @@ const SortableItem = ({ segment, index, onEdit, onPlay, onDelete, onDownload, on
             className="w-full p-3 bg-background border border-border rounded-md cursor-text hover:bg-accent/10 transition-colors"
             onClick={() => setIsEditing(true)}
           >
-            <p className="text-lg font-medium">{segment.title || `Segment ${index + 1}`}</p>
+            <p className="text-lg font-medium">
+              {segment.artist && `${segment.artist} - `}
+              {segment.title || `Segment ${index + 1}`}
+            </p>
           </div>
         )}
       </div>
@@ -193,7 +221,17 @@ const Index = () => {
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState([0]);
-  const [segments, setSegments] = useState<Array<{id: number, start: number, end: number, title: string, blob?: Blob, downloadUrl?: string}>>([]);
+  const [segments, setSegments] = useState<Array<{
+    id: number, 
+    start: number, 
+    end: number, 
+    title: string, 
+    blob?: Blob, 
+    downloadUrl?: string,
+    status?: 'pending' | 'processing' | 'identified' | 'ready',
+    dbId?: string,
+    artist?: string
+  }>>([]);
   const [fadeInDuration, setFadeInDuration] = useState([2]);
   const [fadeOutDuration, setFadeOutDuration] = useState([2]);
   const [projectName, setProjectName] = useState("YouTube Cutter Project");
@@ -491,25 +529,36 @@ const Index = () => {
         const startSeconds = parseTime(song.time);
         const endSeconds = nextSong ? parseTime(nextSong.time) : videoDuration;
 
+        // Save to database first
+        const { data: dbSegment, error: dbError } = await supabase
+          .from('segments')
+          .insert({
+            playlist_id: currentPlaylistId,
+            start_time: startSeconds,
+            end_time: endSeconds,
+            title: song.title,
+            artist: song.artist || null,
+            status: 'identified',
+            sort_order: i
+          })
+          .select()
+          .single();
+
+        if (dbError) {
+          console.error('Error saving segment to DB:', dbError);
+        }
+
         // Create segment in state
         const segment = {
           id: Date.now() + i,
           start: startSeconds,
           end: endSeconds,
-          title: song.artist ? `${song.artist} - ${song.title}` : song.title,
+          title: song.title,
+          artist: song.artist,
+          status: 'identified' as const,
+          dbId: dbSegment?.id
         };
         newSegments.push(segment);
-
-        // Save to database
-        await supabase.from('segments').insert({
-          playlist_id: currentPlaylistId,
-          start_time: startSeconds,
-          end_time: endSeconds,
-          title: song.title,
-          artist: song.artist || null,
-          status: 'identified',
-          sort_order: i
-        });
       }
 
       setSegments([...segments, ...newSegments]);
@@ -898,6 +947,11 @@ const Index = () => {
       return;
     }
 
+    // Update segment status to processing
+    setSegments(prev => prev.map(s => 
+      s.id === segment.id ? { ...s, status: 'processing' } : s
+    ));
+
     const isAudio = cuttingMode === 'audio' || fileToProcess.type === 'audio';
     const format = isAudio ? selectedAudioFormats[0] : 'mp4';
     
@@ -911,9 +965,65 @@ const Index = () => {
     if (blob) {
       const extension = isAudio ? selectedAudioFormats[0] : 'mp4';
       const filename = `${segment.title || 'segment'}.${extension}`;
-      setProcessedBlob(blob);
-      setProcessedFilename(filename);
-      setShowContinueDialog(true);
+      
+      // Upload to Supabase Storage
+      try {
+        const filePath = `segments/${uploadedFileId || Date.now()}/${segment.id}_${filename}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('temp-media')
+          .upload(filePath, blob, {
+            contentType: isAudio ? `audio/${format}` : 'video/mp4',
+            upsert: true
+          });
+
+        if (uploadError) throw uploadError;
+
+        // Update segment in database if it has a dbId
+        if (segment.dbId) {
+          const { error: updateError } = await supabase
+            .from('segments')
+            .update({
+              file_path: filePath,
+              status: 'ready'
+            })
+            .eq('id', segment.dbId);
+
+          if (updateError) console.error('Error updating segment:', updateError);
+        }
+
+        // Update local state
+        setSegments(prev => prev.map(s => 
+          s.id === segment.id ? { 
+            ...s, 
+            blob, 
+            downloadUrl: filePath,
+            status: 'ready' 
+          } : s
+        ));
+
+        toast({
+          title: "הסגמנט מוכן! ✨",
+          description: `${filename} נשמר בהצלחה`,
+        });
+
+      } catch (error) {
+        console.error('Error uploading to storage:', error);
+        
+        // Still show the continue dialog even if upload fails
+        setSegments(prev => prev.map(s => 
+          s.id === segment.id ? { ...s, status: 'ready' } : s
+        ));
+        
+        setProcessedBlob(blob);
+        setProcessedFilename(filename);
+        setShowContinueDialog(true);
+      }
+    } else {
+      // Update status to pending if failed
+      setSegments(prev => prev.map(s => 
+        s.id === segment.id ? { ...s, status: 'pending' } : s
+      ));
     }
   };
 
