@@ -678,7 +678,8 @@ const Index = () => {
 
       // Create analyser
       const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 512;
+      analyser.fftSize = 2048; // Increased for better frequency resolution
+      analyser.smoothingTimeConstant = 0.8; // Smooth out the waveform
       analyserRef.current = analyser;
 
       try {
@@ -687,16 +688,13 @@ const Index = () => {
         analyser.connect(audioContext.destination);
         console.log('Audio nodes connected successfully');
 
-        // Resume context if suspended
-        if (audioContext.state === 'suspended') {
-          await audioContext.resume();
-        }
-
-        // Start visualization
+        // Start visualization immediately
         const updateWaveform = () => {
-          const bufferLength = analyser.frequencyBinCount;
+          if (!analyserRef.current) return;
+          
+          const bufferLength = analyserRef.current.frequencyBinCount;
           const dataArray = new Uint8Array(bufferLength);
-          analyser.getByteFrequencyData(dataArray);
+          analyserRef.current.getByteFrequencyData(dataArray);
 
           // Sample 200 points from the frequency data
           const samples = 200;
@@ -705,7 +703,13 @@ const Index = () => {
           
           for (let i = 0; i < samples; i++) {
             const index = Math.min(i * step, bufferLength - 1);
-            const value = dataArray[index] / 255 * 100; // Normalize to 0-100
+            // Get average of nearby frequencies for smoother visualization
+            let sum = 0;
+            for (let j = 0; j < step && index + j < bufferLength; j++) {
+              sum += dataArray[index + j];
+            }
+            const avg = sum / step;
+            const value = (avg / 255) * 100; // Normalize to 0-100
             waveformData.push(value);
           }
           
@@ -713,11 +717,19 @@ const Index = () => {
           animationFrameRef.current = requestAnimationFrame(updateWaveform);
         };
 
+        // Start the animation loop
         updateWaveform();
         console.log('Waveform visualization started');
+
+        // Resume context when media starts playing
+        mediaElement.addEventListener('play', async () => {
+          if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+            console.log('Audio context resumed on play');
+          }
+        });
       } catch (sourceError) {
         console.error('Error creating media source:', sourceError);
-        // Try to continue anyway
       }
     } catch (error) {
       console.error('Error setting up audio analysis:', error);
