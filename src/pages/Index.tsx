@@ -678,8 +678,7 @@ const Index = () => {
 
       // Create analyser
       const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 2048; // Increased for better frequency resolution
-      analyser.smoothingTimeConstant = 0.8; // Smooth out the waveform
+      analyser.fftSize = 512;
       analyserRef.current = analyser;
 
       try {
@@ -688,13 +687,16 @@ const Index = () => {
         analyser.connect(audioContext.destination);
         console.log('Audio nodes connected successfully');
 
-        // Start visualization immediately
+        // Resume context if suspended
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+
+        // Start visualization
         const updateWaveform = () => {
-          if (!analyserRef.current) return;
-          
-          const bufferLength = analyserRef.current.frequencyBinCount;
+          const bufferLength = analyser.frequencyBinCount;
           const dataArray = new Uint8Array(bufferLength);
-          analyserRef.current.getByteFrequencyData(dataArray);
+          analyser.getByteFrequencyData(dataArray);
 
           // Sample 200 points from the frequency data
           const samples = 200;
@@ -703,13 +705,7 @@ const Index = () => {
           
           for (let i = 0; i < samples; i++) {
             const index = Math.min(i * step, bufferLength - 1);
-            // Get average of nearby frequencies for smoother visualization
-            let sum = 0;
-            for (let j = 0; j < step && index + j < bufferLength; j++) {
-              sum += dataArray[index + j];
-            }
-            const avg = sum / step;
-            const value = (avg / 255) * 100; // Normalize to 0-100
+            const value = dataArray[index] / 255 * 100; // Normalize to 0-100
             waveformData.push(value);
           }
           
@@ -717,19 +713,11 @@ const Index = () => {
           animationFrameRef.current = requestAnimationFrame(updateWaveform);
         };
 
-        // Start the animation loop
         updateWaveform();
         console.log('Waveform visualization started');
-
-        // Resume context when media starts playing
-        mediaElement.addEventListener('play', async () => {
-          if (audioContext.state === 'suspended') {
-            await audioContext.resume();
-            console.log('Audio context resumed on play');
-          }
-        });
       } catch (sourceError) {
         console.error('Error creating media source:', sourceError);
+        // Try to continue anyway
       }
     } catch (error) {
       console.error('Error setting up audio analysis:', error);
@@ -2014,46 +2002,46 @@ const Index = () => {
               {/* ציר זמן מתקדם עם סמני חיתוך ווייבפורם */}
               <div className="mt-8 space-y-6 bg-black/95 rounded-2xl p-6 border border-accent/20 shadow-2xl relative">
                 {/* Zoom controls and song detection - positioned top right */}
-                <div className="absolute top-2 right-2 flex flex-col gap-2 z-30 pointer-events-auto">
+                <div className="absolute top-2 right-2 flex flex-col gap-2 z-30">
                   <Button
                     size="icon"
                     variant="outline"
-                    className="h-10 w-10 rounded-full bg-black/90 border-white/30 hover:bg-white/20 shadow-lg"
+                    className="h-10 w-10 rounded-full bg-black/90 border-white/30 hover:bg-white/20 shadow-lg pointer-events-auto"
                     onClick={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
-                      console.log('Zoom in clicked');
                       const center = (viewRange.start + viewRange.end) / 2;
                       const range = viewRange.end - viewRange.start;
                       const newRange = Math.max(10, range * 0.7);
                       const newStart = Math.max(0, center - newRange / 2);
                       const newEnd = Math.min(videoDuration, center + newRange / 2);
-                      console.log('New range:', newStart, newEnd);
                       setViewRange({
                         start: newStart,
                         end: newEnd
                       });
                     }}
+                    type="button"
                   >
                     <Plus className="h-5 w-5 text-white" />
                   </Button>
                   <Button
                     size="icon"
                     variant="outline"
-                    className="h-10 w-10 rounded-full bg-black/90 border-white/30 hover:bg-white/20 shadow-lg"
+                    className="h-10 w-10 rounded-full bg-black/90 border-white/30 hover:bg-white/20 shadow-lg pointer-events-auto"
                     onClick={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
-                      console.log('Zoom out clicked');
                       const center = (viewRange.start + viewRange.end) / 2;
                       const range = viewRange.end - viewRange.start;
                       const newRange = Math.min(videoDuration, range * 1.3);
                       const newStart = Math.max(0, center - newRange / 2);
                       const newEnd = Math.min(videoDuration, center + newRange / 2);
-                      console.log('New range:', newStart, newEnd);
                       setViewRange({
                         start: newStart,
                         end: newEnd
                       });
                     }}
+                    type="button"
                   >
                     <Minus className="h-5 w-5 text-white" />
                   </Button>
