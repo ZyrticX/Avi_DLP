@@ -2001,69 +2001,133 @@ const Index = () => {
               
               {/* ציר זמן מתקדם עם סמני חיתוך ווייבפורם */}
               <div className="mt-8 space-y-6 bg-black/95 rounded-2xl p-6 border border-accent/20 shadow-2xl relative">
-                {/* Zoom controls and song detection - positioned top right */}
-                <div className="absolute top-4 right-4 flex flex-col gap-3 z-30">
+                
+                {/* כפתורי Trim Sides ו-Trim Middle - מעל הגרף */}
+                <div className="flex justify-center gap-4 mb-4">
                   <Button
-                    size="icon"
                     variant="outline"
-                    className="h-14 w-14 rounded-full bg-black/90 border-white/30 hover:bg-white/20 shadow-lg pointer-events-auto"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      const center = (viewRange.start + viewRange.end) / 2;
-                      const range = viewRange.end - viewRange.start;
-                      const newRange = Math.max(10, range * 0.7);
-                      const newStart = Math.max(0, center - newRange / 2);
-                      const newEnd = Math.min(videoDuration, center + newRange / 2);
-                      setViewRange({
-                        start: newStart,
-                        end: newEnd
-                      });
-                    }}
-                    type="button"
-                  >
-                    <Plus className="h-7 w-7 text-white" strokeWidth={2.5} />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-14 w-14 rounded-full bg-black/90 border-white/30 hover:bg-white/20 shadow-lg pointer-events-auto"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      const center = (viewRange.start + viewRange.end) / 2;
-                      const range = viewRange.end - viewRange.start;
-                      const newRange = Math.min(videoDuration, range * 1.3);
-                      const newStart = Math.max(0, center - newRange / 2);
-                      const newEnd = Math.min(videoDuration, center + newRange / 2);
-                      setViewRange({
-                        start: newStart,
-                        end: newEnd
-                      });
-                    }}
-                    type="button"
-                  >
-                    <Minus className="h-7 w-7 text-white" strokeWidth={2.5} />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant={showAutoDetectButton ? "default" : "outline"}
-                    className={`h-14 w-14 rounded-full ${showAutoDetectButton ? 'bg-primary hover:bg-primary/90 animate-pulse' : 'bg-black/90 border-white/30 hover:bg-white/20'} shadow-lg`}
-                    title={showAutoDetectButton ? "זיהוי אוטומטי של שירים - לחץ כאן!" : "זיהוי שיר אוטומטי"}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (showAutoDetectButton) {
-                        handleAutoDetect();
-                      } else {
+                    className="bg-gray-700/80 hover:bg-gray-600/80 border-gray-600 text-white px-6 py-3 rounded-lg"
+                    onClick={async () => {
+                      // Trim Sides - keep the section between start and end markers
+                      const start = startTime[0];
+                      const end = endTime[0];
+                      
+                      if (end <= start) {
                         toast({
-                          title: "לא זוהתה רשימת שירים",
-                          description: "הדבק לינק יוטיוב עם תיאור המכיל רשימת שירים",
+                          title: "טעות בזמנים",
+                          description: "זמן הסיום חייב להיות גדול מזמן ההתחלה",
+                          variant: "destructive"
+                        });
+                        return;
+                      }
+
+                      if (!currentEditingFile) {
+                        toast({
+                          title: "לא נבחר קובץ",
+                          description: "העלה קובץ קודם",
+                          variant: "destructive"
+                        });
+                        return;
+                      }
+
+                      try {
+                        const outputFormat = currentEditingFile.type === 'video' ? 'mp4' : 'aac';
+                        const segment = { id: 1, start, end, title: 'Trimmed' };
+                        const result = await cutVideo(currentEditingFile.file, segment, outputFormat);
+                        
+                        if (result) {
+                          toast({
+                            title: "✂️ חיתוך הצליח",
+                            description: "הקובץ נחתך בהצלחה",
+                          });
+                          
+                          // Download the result
+                          const url = URL.createObjectURL(result);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `trimmed_${currentEditingFile.file.name}`;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }
+                      } catch (error) {
+                        toast({
+                          title: "שגיאה",
+                          description: "אירעה שגיאה בחיתוך הקובץ",
+                          variant: "destructive"
                         });
                       }
                     }}
-                    disabled={!showAutoDetectButton && !videoId}
+                    disabled={!currentEditingFile || isProcessing}
                   >
-                    <Wand2 className="h-7 w-7 text-white" strokeWidth={2.5} />
+                    <ChevronLeft className="w-5 h-5 mr-2 text-red-500" strokeWidth={2.5} />
+                    <ChevronRight className="w-5 h-5 text-red-500" strokeWidth={2.5} />
+                    <span className="ml-2">Trim Sides</span>
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    className="bg-gray-700/80 hover:bg-gray-600/80 border-gray-600 text-white px-6 py-3 rounded-lg"
+                    onClick={async () => {
+                      // Trim Middle - remove the section between start and end
+                      const start = startTime[0];
+                      const end = endTime[0];
+                      
+                      if (end <= start) {
+                        toast({
+                          title: "טעות בזמנים",
+                          description: "זמן הסיום חייב להיות גדול מזמן ההתחלה",
+                          variant: "destructive"
+                        });
+                        return;
+                      }
+
+                      if (!currentEditingFile) {
+                        toast({
+                          title: "לא נבחר קובץ",
+                          description: "העלה קובץ קודם",
+                          variant: "destructive"
+                        });
+                        return;
+                      }
+
+                      try {
+                        const outputFormat = currentEditingFile.type === 'video' ? 'mp4' : 'aac';
+                        
+                        // Merge segments: 0 to start + end to duration
+                        const segments = [
+                          { id: 1, start: 0, end: start, title: 'Part 1' },
+                          { id: 2, start: end, end: videoDuration, title: 'Part 2' }
+                        ];
+                        
+                        const result = await mergeSegments(currentEditingFile.file, segments, outputFormat, 0, 0);
+                        
+                        if (result) {
+                          toast({
+                            title: "✂️ חיתוך הצליח",
+                            description: "החלק האמצעי הוסר בהצלחה",
+                          });
+                          
+                          // Download the result
+                          const url = URL.createObjectURL(result);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `trimmed_middle_${currentEditingFile.file.name}`;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }
+                      } catch (error) {
+                        toast({
+                          title: "שגיאה",
+                          description: "אירעה שגיאה בחיתוך הקובץ",
+                          variant: "destructive"
+                        });
+                      }
+                    }}
+                    disabled={!currentEditingFile || isProcessing}
+                  >
+                    <ChevronLeft className="w-5 h-5 mr-2 text-white" strokeWidth={2.5} />
+                    <ChevronRight className="w-5 h-5 text-white" strokeWidth={2.5} />
+                    <span className="ml-2">Trim Middle</span>
                   </Button>
                 </div>
                 
@@ -2228,6 +2292,61 @@ const Index = () => {
                     }}
                   />
                   )}
+                  
+                  {/* Zoom controls - smaller, positioned in top right corner */}
+                  <div className="absolute top-2 right-2 flex gap-2 z-30">
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="h-9 w-9 rounded-full bg-black/90 border-white/30 hover:bg-white/20 shadow-lg pointer-events-auto"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const center = (viewRange.start + viewRange.end) / 2;
+                        const range = viewRange.end - viewRange.start;
+                        const newRange = Math.max(10, range * 0.7);
+                        const newStart = Math.max(0, center - newRange / 2);
+                        const newEnd = Math.min(videoDuration, center + newRange / 2);
+                        setViewRange({
+                          start: newStart,
+                          end: newEnd
+                        });
+                      }}
+                      type="button"
+                      title="Zoom In"
+                    >
+                      <Plus className="h-4 w-4 text-white" strokeWidth={2.5} />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="h-9 w-9 rounded-full bg-black/90 border-white/30 hover:bg-white/20 shadow-lg pointer-events-auto"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const center = (viewRange.start + viewRange.end) / 2;
+                        const range = viewRange.end - viewRange.start;
+                        const newRange = Math.min(videoDuration, range * 1.3);
+                        const newStart = Math.max(0, center - newRange / 2);
+                        const newEnd = Math.min(videoDuration, center + newRange / 2);
+                        setViewRange({
+                          start: newStart,
+                          end: newEnd
+                        });
+                      }}
+                      type="button"
+                      title="Zoom Out"
+                    >
+                      <Minus className="h-4 w-4 text-white" strokeWidth={2.5} />
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* תצוגת זמן נוכחי מתחת לגרף */}
+                <div className="text-center">
+                  <div className="text-white text-3xl font-mono font-bold tracking-wider">
+                    {Math.floor(currentTime[0] / 60).toString().padStart(2, '0')}:{Math.floor(currentTime[0] % 60).toString().padStart(2, '0')}.{Math.floor((currentTime[0] % 1) * 10)}
+                  </div>
                 </div>
 
                 {/* Time controls with +/- buttons */}
@@ -2508,123 +2627,6 @@ const Index = () => {
                 </Button>
               </div>
 
-              {/* כפתורי Trim Inside / Trim Outside */}
-              <div className={`flex justify-center items-center gap-3 mb-4 ${isMobile ? 'max-w-xs' : 'max-w-md'} mx-auto`}>
-                <Button 
-                  variant="outline" 
-                  size={isMobile ? "sm" : "default"} 
-                  className={`rounded-full ${isMobile ? 'px-3 py-2 text-sm' : 'px-6 py-2'} border-2 border-orange-500/50 hover:bg-orange-500/10`}
-                  onClick={async () => {
-                    // Trim Inside - keep the section between start and end
-                    const start = startTime[0];
-                    const end = endTime[0];
-                    
-                    if (end <= start) {
-                      toast({
-                        title: "טעות בזמנים",
-                        description: "זמן הסיום חייב להיות גדול מזמן ההתחלה",
-                        variant: "destructive"
-                      });
-                      return;
-                    }
-
-                    try {
-                      let cutBlob: Blob | null = null;
-                      
-                      if (currentEditingFile) {
-                        cutBlob = await cutVideo(
-                          currentEditingFile.file, 
-                          { id: 0, start, end, title: 'trim_inside' }, 
-                          cuttingMode === 'audio' ? selectedAudioFormats[0] : 'mp4', 
-                          cuttingMode === 'audio' ? undefined : selectedVideoResolutions[0]
-                        );
-                      }
-                      
-                      if (cutBlob) {
-                        const extension = cuttingMode === 'audio' ? selectedAudioFormats[0] : 'mp4';
-                        downloadBlob(cutBlob, `trim_inside.${extension}`);
-                        
-                        toast({
-                          title: "חיתוך פנים הושלם",
-                          description: "הקובץ הורד בהצלחה"
-                        });
-                      }
-                    } catch (error) {
-                      toast({
-                        title: "שגיאה",
-                        description: "אירעה שגיאה בחיתוך הקובץ",
-                        variant: "destructive"
-                      });
-                    }
-                  }}
-                  disabled={!currentEditingFile || isProcessing}
-                >
-                  <Crop className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} mr-1`} />
-                  Trim Inside
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size={isMobile ? "sm" : "default"} 
-                  className={`rounded-full ${isMobile ? 'px-3 py-2 text-sm' : 'px-6 py-2'} border-2 border-orange-500/50 hover:bg-orange-500/10`}
-                  onClick={async () => {
-                    // Trim Outside - remove the section between start and end
-                    const start = startTime[0];
-                    const end = endTime[0];
-                    
-                    if (end <= start) {
-                      toast({
-                        title: "טעות בזמנים",
-                        description: "זמן הסיום חייב להיות גדול מזמן ההתחלה",
-                        variant: "destructive"
-                      });
-                      return;
-                    }
-
-                    if (!currentEditingFile) {
-                      toast({
-                        title: "אין קובץ",
-                        description: "יש להעלות קובץ תחילה",
-                        variant: "destructive"
-                      });
-                      return;
-                    }
-
-                    try {
-                      // Create two segments: 0 to start, and end to duration
-                      const segment1 = { id: 1, start: 0, end: start, title: 'part1' };
-                      const segment2 = { id: 2, start: end, end: videoDuration, title: 'part2' };
-                      
-                      const blob = await mergeSegments(
-                        currentEditingFile.file,
-                        [segment1, segment2],
-                        cuttingMode === 'audio' ? selectedAudioFormats[0] : 'mp4',
-                        0,
-                        0
-                      );
-                      
-                      if (blob) {
-                        const extension = cuttingMode === 'audio' ? selectedAudioFormats[0] : 'mp4';
-                        downloadBlob(blob, `trim_outside.${extension}`);
-                        
-                        toast({
-                          title: "חיתוך חוץ הושלם",
-                          description: "הקובץ הורד בהצלחה"
-                        });
-                      }
-                    } catch (error) {
-                      toast({
-                        title: "שגיאה",
-                        description: "אירעה שגיאה בחיתוך הקובץ",
-                        variant: "destructive"
-                      });
-                    }
-                  }}
-                  disabled={!currentEditingFile || isProcessing}
-                >
-                  <Scissors className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} mr-1`} />
-                  Trim Outside
-                </Button>
-              </div>
 
               {/* כפתור שמירה/הורדה של מקטע חתוך */}
               <div className="flex justify-center mb-4">
