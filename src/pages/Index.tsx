@@ -2002,11 +2002,11 @@ const Index = () => {
               {/* ציר זמן מתקדם עם סמני חיתוך ווייבפורם */}
               <div className="mt-8 space-y-6 bg-black/95 rounded-2xl p-6 border border-accent/20 shadow-2xl relative">
                 {/* Zoom controls and song detection - positioned top right */}
-                <div className="absolute top-2 right-2 flex flex-col gap-2 z-30">
+                <div className="absolute top-4 right-4 flex flex-col gap-3 z-30">
                   <Button
                     size="icon"
                     variant="outline"
-                    className="h-10 w-10 rounded-full bg-black/90 border-white/30 hover:bg-white/20 shadow-lg pointer-events-auto"
+                    className="h-14 w-14 rounded-full bg-black/90 border-white/30 hover:bg-white/20 shadow-lg pointer-events-auto"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -2022,12 +2022,12 @@ const Index = () => {
                     }}
                     type="button"
                   >
-                    <Plus className="h-5 w-5 text-white" />
+                    <Plus className="h-7 w-7 text-white" strokeWidth={2.5} />
                   </Button>
                   <Button
                     size="icon"
                     variant="outline"
-                    className="h-10 w-10 rounded-full bg-black/90 border-white/30 hover:bg-white/20 shadow-lg pointer-events-auto"
+                    className="h-14 w-14 rounded-full bg-black/90 border-white/30 hover:bg-white/20 shadow-lg pointer-events-auto"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -2043,12 +2043,12 @@ const Index = () => {
                     }}
                     type="button"
                   >
-                    <Minus className="h-5 w-5 text-white" />
+                    <Minus className="h-7 w-7 text-white" strokeWidth={2.5} />
                   </Button>
                   <Button
                     size="icon"
                     variant={showAutoDetectButton ? "default" : "outline"}
-                    className={`h-10 w-10 rounded-full ${showAutoDetectButton ? 'bg-primary hover:bg-primary/90 animate-pulse' : 'bg-black/90 border-white/30 hover:bg-white/20'} shadow-lg`}
+                    className={`h-14 w-14 rounded-full ${showAutoDetectButton ? 'bg-primary hover:bg-primary/90 animate-pulse' : 'bg-black/90 border-white/30 hover:bg-white/20'} shadow-lg`}
                     title={showAutoDetectButton ? "זיהוי אוטומטי של שירים - לחץ כאן!" : "זיהוי שיר אוטומטי"}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -2063,7 +2063,7 @@ const Index = () => {
                     }}
                     disabled={!showAutoDetectButton && !videoId}
                   >
-                    <Wand2 className="h-5 w-5 text-white" />
+                    <Wand2 className="h-7 w-7 text-white" strokeWidth={2.5} />
                   </Button>
                 </div>
                 
@@ -2079,16 +2079,9 @@ const Index = () => {
                     </div>
                   ) : (
                     <>
-                      {/* Real-time audio waveform visualization */}
+                  {/* Real-time audio waveform visualization */}
                       <div className="absolute inset-0 flex items-center">
                         <svg className="w-full h-full" preserveAspectRatio="none">
-                          <defs>
-                            <linearGradient id="waveGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                              <stop offset="0%" style={{ stopColor: '#10b981', stopOpacity: 0.8 }} />
-                              <stop offset="50%" style={{ stopColor: '#14b8a6', stopOpacity: 0.9 }} />
-                              <stop offset="100%" style={{ stopColor: '#06b6d4', stopOpacity: 0.7 }} />
-                            </linearGradient>
-                          </defs>
                           {audioData.map((amplitude, i) => {
                             const x = (i / audioData.length) * 100;
                             const height = Math.max(10, amplitude);
@@ -2099,8 +2092,8 @@ const Index = () => {
                                 y={`${50 - height / 2}%`}
                                 width="0.4%"
                                 height={`${height}%`}
-                                fill="url(#waveGradient)"
-                                opacity={0.9}
+                                fill="white"
+                                opacity={0.85}
                               />
                             );
                           })}
@@ -2109,10 +2102,10 @@ const Index = () => {
                     </>
                   )}
 
-                  {/* Start marker - Green vertical line with label */}
+                  {/* Start marker - Red vertical line with orange/white arrow */}
                   {!isLoadingVideo && (
                     <div
-                      className="absolute top-0 h-full w-1.5 bg-green-500 cursor-grab active:cursor-grabbing z-10 shadow-lg shadow-green-500/50 hover:w-2"
+                      className="absolute top-0 h-full w-1 bg-red-500 cursor-grab active:cursor-grabbing z-10 shadow-lg shadow-red-500/50"
                       style={{ 
                         left: `${((startTime[0] - viewRange.start) / (viewRange.end - viewRange.start)) * 100}%`,
                         display: startTime[0] >= viewRange.start && startTime[0] <= viewRange.end ? 'block' : 'none'
@@ -2161,20 +2154,20 @@ const Index = () => {
                       document.addEventListener('touchend', handleTouchEnd);
                     }}
                   >
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg whitespace-nowrap pointer-events-none">
-                      START ▼
+                    <div className="absolute top-1/2 -translate-y-1/2 -left-8 w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-xl cursor-pointer pointer-events-none">
+                      <ChevronLeft className="w-6 h-6 text-white" strokeWidth={3} />
                     </div>
                   </div>
                   )}
 
-                  {/* End marker - Red vertical line with label */}
+                  {/* End marker - Red vertical line with orange/white arrow */}
                   {!isLoadingVideo && (
                     <div
-                    className="absolute top-0 h-full w-1.5 bg-red-500 cursor-grab active:cursor-grabbing z-10 shadow-lg shadow-red-500/50 hover:w-2"
-                    style={{ 
-                      left: `${((endTime[0] - viewRange.start) / (viewRange.end - viewRange.start)) * 100}%`,
-                      display: endTime[0] >= viewRange.start && endTime[0] <= viewRange.end ? 'block' : 'none'
-                    }}
+                      className="absolute top-0 h-full w-1 bg-red-500 cursor-grab active:cursor-grabbing z-10 shadow-lg shadow-red-500/50"
+                      style={{ 
+                        left: `${((endTime[0] - viewRange.start) / (viewRange.end - viewRange.start)) * 100}%`,
+                        display: endTime[0] >= viewRange.start && endTime[0] <= viewRange.end ? 'block' : 'none'
+                      }}
                     draggable
                     onMouseDown={(e) => {
                       const startX = e.clientX;
@@ -2219,8 +2212,8 @@ const Index = () => {
                       document.addEventListener('touchend', handleTouchEnd);
                     }}
                   >
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg whitespace-nowrap pointer-events-none">
-                      END ▼
+                    <div className="absolute top-1/2 -translate-y-1/2 -right-8 w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-xl cursor-pointer pointer-events-none">
+                      <ChevronRight className="w-6 h-6 text-white" strokeWidth={3} />
                     </div>
                   </div>
                   )}
@@ -2512,6 +2505,124 @@ const Index = () => {
                 >
                   <ChevronRight className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} mr-1`} />
                   End
+                </Button>
+              </div>
+
+              {/* כפתורי Trim Inside / Trim Outside */}
+              <div className={`flex justify-center items-center gap-3 mb-4 ${isMobile ? 'max-w-xs' : 'max-w-md'} mx-auto`}>
+                <Button 
+                  variant="outline" 
+                  size={isMobile ? "sm" : "default"} 
+                  className={`rounded-full ${isMobile ? 'px-3 py-2 text-sm' : 'px-6 py-2'} border-2 border-orange-500/50 hover:bg-orange-500/10`}
+                  onClick={async () => {
+                    // Trim Inside - keep the section between start and end
+                    const start = startTime[0];
+                    const end = endTime[0];
+                    
+                    if (end <= start) {
+                      toast({
+                        title: "טעות בזמנים",
+                        description: "זמן הסיום חייב להיות גדול מזמן ההתחלה",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+
+                    try {
+                      let cutBlob: Blob | null = null;
+                      
+                      if (currentEditingFile) {
+                        cutBlob = await cutVideo(
+                          currentEditingFile.file, 
+                          { id: 0, start, end, title: 'trim_inside' }, 
+                          cuttingMode === 'audio' ? selectedAudioFormats[0] : 'mp4', 
+                          cuttingMode === 'audio' ? undefined : selectedVideoResolutions[0]
+                        );
+                      }
+                      
+                      if (cutBlob) {
+                        const extension = cuttingMode === 'audio' ? selectedAudioFormats[0] : 'mp4';
+                        downloadBlob(cutBlob, `trim_inside.${extension}`);
+                        
+                        toast({
+                          title: "חיתוך פנים הושלם",
+                          description: "הקובץ הורד בהצלחה"
+                        });
+                      }
+                    } catch (error) {
+                      toast({
+                        title: "שגיאה",
+                        description: "אירעה שגיאה בחיתוך הקובץ",
+                        variant: "destructive"
+                      });
+                    }
+                  }}
+                  disabled={!currentEditingFile || isProcessing}
+                >
+                  <Crop className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} mr-1`} />
+                  Trim Inside
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size={isMobile ? "sm" : "default"} 
+                  className={`rounded-full ${isMobile ? 'px-3 py-2 text-sm' : 'px-6 py-2'} border-2 border-orange-500/50 hover:bg-orange-500/10`}
+                  onClick={async () => {
+                    // Trim Outside - remove the section between start and end
+                    const start = startTime[0];
+                    const end = endTime[0];
+                    
+                    if (end <= start) {
+                      toast({
+                        title: "טעות בזמנים",
+                        description: "זמן הסיום חייב להיות גדול מזמן ההתחלה",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+
+                    if (!currentEditingFile) {
+                      toast({
+                        title: "אין קובץ",
+                        description: "יש להעלות קובץ תחילה",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+
+                    try {
+                      // Create two segments: 0 to start, and end to duration
+                      const segment1 = { id: 1, start: 0, end: start, title: 'part1' };
+                      const segment2 = { id: 2, start: end, end: videoDuration, title: 'part2' };
+                      
+                      const blob = await mergeSegments(
+                        currentEditingFile.file,
+                        [segment1, segment2],
+                        cuttingMode === 'audio' ? selectedAudioFormats[0] : 'mp4',
+                        0,
+                        0
+                      );
+                      
+                      if (blob) {
+                        const extension = cuttingMode === 'audio' ? selectedAudioFormats[0] : 'mp4';
+                        downloadBlob(blob, `trim_outside.${extension}`);
+                        
+                        toast({
+                          title: "חיתוך חוץ הושלם",
+                          description: "הקובץ הורד בהצלחה"
+                        });
+                      }
+                    } catch (error) {
+                      toast({
+                        title: "שגיאה",
+                        description: "אירעה שגיאה בחיתוך הקובץ",
+                        variant: "destructive"
+                      });
+                    }
+                  }}
+                  disabled={!currentEditingFile || isProcessing}
+                >
+                  <Scissors className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} mr-1`} />
+                  Trim Outside
                 </Button>
               </div>
 
