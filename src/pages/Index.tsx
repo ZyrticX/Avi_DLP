@@ -2143,7 +2143,7 @@ const Index = () => {
                     </div>
                   ) : (
                     <>
-                  {/* Real-time audio waveform visualization */}
+                      {/* Real-time audio waveform visualization */}
                       <div className="absolute inset-0 flex items-center">
                         <svg className="w-full h-full" preserveAspectRatio="none">
                           {audioData.map((amplitude, i) => {
@@ -2166,187 +2166,158 @@ const Index = () => {
                     </>
                   )}
 
+                  {/* Small current time label above waveform */}
+                  {!isLoadingVideo && (
+                    <div className="absolute top-1 left-2 z-30">
+                      <span className="px-2 py-0.5 rounded bg-black/50 text-white/80 text-xs font-mono">
+                        {Math.floor(currentTime[0] / 60).toString().padStart(2, '0')}:{Math.floor(currentTime[0] % 60).toString().padStart(2, '0')}.{Math.floor((currentTime[0] % 1) * 10)}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Start marker - Red vertical line with orange/white arrow */}
                   {!isLoadingVideo && (
                     <div
-                      className="absolute top-0 h-full w-1 bg-red-500 cursor-grab active:cursor-grabbing z-10 shadow-lg shadow-red-500/50"
-                      style={{ 
+                      className="absolute top-0 h-full w-1 bg-red-500 cursor-grab active:cursor-grabbing z-10 shadow-lg shadow-red-500/50 touch-none select-none"
+                      style={{
                         left: `${((startTime[0] - viewRange.start) / (viewRange.end - viewRange.start)) * 100}%`,
-                        display: startTime[0] >= viewRange.start && startTime[0] <= viewRange.end ? 'block' : 'none'
+                        display: startTime[0] >= viewRange.start && startTime[0] <= viewRange.end ? 'block' : 'none',
+                        willChange: 'left'
                       }}
-                    draggable
-                    onMouseDown={(e) => {
-                      const startX = e.clientX;
-                      const startVal = startTime[0];
-                      const rect = e.currentTarget.parentElement!.getBoundingClientRect();
-                      
-                      const handleMouseMove = (e: MouseEvent) => {
-                        const deltaX = e.clientX - startX;
-                        const deltaPercent = deltaX / rect.width;
-                        const newVal = Math.max(viewRange.start, Math.min(endTime[0] - 0.1, startVal + deltaPercent * (viewRange.end - viewRange.start)));
-                        setStartTime([newVal]);
-                      };
-                      
-                      const handleMouseUp = () => {
-                        document.removeEventListener('mousemove', handleMouseMove);
-                        document.removeEventListener('mouseup', handleMouseUp);
-                      };
-                      
-                      document.addEventListener('mousemove', handleMouseMove);
-                      document.addEventListener('mouseup', handleMouseUp);
-                    }}
-                    onTouchStart={(e) => {
-                      const touch = e.touches[0];
-                      const startX = touch.clientX;
-                      const startVal = startTime[0];
-                      const rect = e.currentTarget.parentElement!.getBoundingClientRect();
-                      
-                      const handleTouchMove = (e: TouchEvent) => {
-                        const touch = e.touches[0];
-                        const deltaX = touch.clientX - startX;
-                        const deltaPercent = deltaX / rect.width;
-                        const newVal = Math.max(viewRange.start, Math.min(endTime[0] - 0.1, startVal + deltaPercent * (viewRange.end - viewRange.start)));
-                        setStartTime([newVal]);
-                      };
-                      
-                      const handleTouchEnd = () => {
-                        document.removeEventListener('touchmove', handleTouchMove);
-                        document.removeEventListener('touchend', handleTouchEnd);
-                      };
-                      
-                      document.addEventListener('touchmove', handleTouchMove);
-                      document.addEventListener('touchend', handleTouchEnd);
-                    }}
-                  >
-                    <div className="absolute top-1/2 -translate-y-1/2 -left-8 w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-xl cursor-pointer pointer-events-none">
-                      <ChevronLeft className="w-6 h-6 text-white" strokeWidth={3} />
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        const startX = e.clientX;
+                        const startVal = startTime[0];
+                        const container = (e.currentTarget.parentElement! as HTMLElement);
+                        const rect = container.getBoundingClientRect();
+                        try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch {}
+
+                        const handleMove = (evt: PointerEvent) => {
+                          const deltaX = evt.clientX - startX;
+                          const deltaPercent = deltaX / rect.width;
+                          const newVal = Math.max(
+                            viewRange.start,
+                            Math.min(endTime[0] - 0.1, startVal + deltaPercent * (viewRange.end - viewRange.start))
+                          );
+                          setStartTime([newVal]);
+                        };
+                        const handleUp = () => {
+                          document.removeEventListener('pointermove', handleMove);
+                          document.removeEventListener('pointerup', handleUp);
+                        };
+                        document.addEventListener('pointermove', handleMove);
+                        document.addEventListener('pointerup', handleUp);
+                      }}
+                    >
+                      <div className="absolute top-1/2 -translate-y-1/2 -left-8 w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-xl cursor-pointer pointer-events-none">
+                        <ChevronLeft className="w-6 h-6 text-white" strokeWidth={3} />
+                      </div>
                     </div>
-                  </div>
                   )}
 
                   {/* End marker - Red vertical line with orange/white arrow */}
                   {!isLoadingVideo && (
                     <div
-                      className="absolute top-0 h-full w-1 bg-red-500 cursor-grab active:cursor-grabbing z-10 shadow-lg shadow-red-500/50"
-                      style={{ 
+                      className="absolute top-0 h-full w-1 bg-red-500 cursor-grab active:cursor-grabbing z-10 shadow-lg shadow-red-500/50 touch-none select-none"
+                      style={{
                         left: `${((endTime[0] - viewRange.start) / (viewRange.end - viewRange.start)) * 100}%`,
-                        display: endTime[0] >= viewRange.start && endTime[0] <= viewRange.end ? 'block' : 'none'
+                        display: endTime[0] >= viewRange.start && endTime[0] <= viewRange.end ? 'block' : 'none',
+                        willChange: 'left'
                       }}
-                    draggable
-                    onMouseDown={(e) => {
-                      const startX = e.clientX;
-                      const startVal = endTime[0];
-                      const rect = e.currentTarget.parentElement!.getBoundingClientRect();
-                      
-                      const handleMouseMove = (e: MouseEvent) => {
-                        const deltaX = e.clientX - startX;
-                        const deltaPercent = deltaX / rect.width;
-                        const newVal = Math.max(startTime[0] + 0.1, Math.min(viewRange.end, startVal + deltaPercent * (viewRange.end - viewRange.start)));
-                        setEndTime([newVal]);
-                      };
-                      
-                      const handleMouseUp = () => {
-                        document.removeEventListener('mousemove', handleMouseMove);
-                        document.removeEventListener('mouseup', handleMouseUp);
-                      };
-                      
-                      document.addEventListener('mousemove', handleMouseMove);
-                      document.addEventListener('mouseup', handleMouseUp);
-                    }}
-                    onTouchStart={(e) => {
-                      const touch = e.touches[0];
-                      const startX = touch.clientX;
-                      const startVal = endTime[0];
-                      const rect = e.currentTarget.parentElement!.getBoundingClientRect();
-                      
-                      const handleTouchMove = (e: TouchEvent) => {
-                        const touch = e.touches[0];
-                        const deltaX = touch.clientX - startX;
-                        const deltaPercent = deltaX / rect.width;
-                        const newVal = Math.max(startTime[0] + 0.1, Math.min(viewRange.end, startVal + deltaPercent * (viewRange.end - viewRange.start)));
-                        setEndTime([newVal]);
-                      };
-                      
-                      const handleTouchEnd = () => {
-                        document.removeEventListener('touchmove', handleTouchMove);
-                        document.removeEventListener('touchend', handleTouchEnd);
-                      };
-                      
-                      document.addEventListener('touchmove', handleTouchMove);
-                      document.addEventListener('touchend', handleTouchEnd);
-                    }}
-                  >
-                    <div className="absolute top-1/2 -translate-y-1/2 -right-8 w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-xl cursor-pointer pointer-events-none">
-                      <ChevronRight className="w-6 h-6 text-white" strokeWidth={3} />
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        const startX = e.clientX;
+                        const startVal = endTime[0];
+                        const container = (e.currentTarget.parentElement! as HTMLElement);
+                        const rect = container.getBoundingClientRect();
+                        try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch {}
+
+                        const handleMove = (evt: PointerEvent) => {
+                          const deltaX = evt.clientX - startX;
+                          const deltaPercent = deltaX / rect.width;
+                          const newVal = Math.max(
+                            startTime[0] + 0.1,
+                            Math.min(viewRange.end, startVal + deltaPercent * (viewRange.end - viewRange.start))
+                          );
+                          setEndTime([newVal]);
+                        };
+                        const handleUp = () => {
+                          document.removeEventListener('pointermove', handleMove);
+                          document.removeEventListener('pointerup', handleUp);
+                        };
+                        document.addEventListener('pointermove', handleMove);
+                        document.addEventListener('pointerup', handleUp);
+                      }}
+                    >
+                      <div className="absolute top-1/2 -translate-y-1/2 -right-8 w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-xl cursor-pointer pointer-events-none">
+                        <ChevronRight className="w-6 h-6 text-white" strokeWidth={3} />
+                      </div>
                     </div>
-                  </div>
                   )}
 
                   {/* Current time indicator */}
                   {!isLoadingVideo && (
                     <div
-                    className="absolute top-0 h-full w-0.5 bg-white/60 z-10"
-                    style={{ 
-                      left: `${((currentTime[0] - viewRange.start) / (viewRange.end - viewRange.start)) * 100}%`,
-                      display: currentTime[0] >= viewRange.start && currentTime[0] <= viewRange.end ? 'block' : 'none'
-                    }}
-                  />
+                      className="absolute top-0 h-full w-0.5 bg-white/60 z-10"
+                      style={{
+                        left: `${((currentTime[0] - viewRange.start) / (viewRange.end - viewRange.start)) * 100}%`,
+                        display: currentTime[0] >= viewRange.start && currentTime[0] <= viewRange.end ? 'block' : 'none',
+                        willChange: 'left'
+                      }}
+                    />
                   )}
-                  
-                  {/* Zoom controls - smaller, positioned in top right corner */}
-                  <div className="absolute top-2 right-2 flex gap-2 z-30">
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="h-9 w-9 rounded-full bg-black/90 border-white/30 hover:bg-white/20 shadow-lg pointer-events-auto"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const center = (viewRange.start + viewRange.end) / 2;
-                        const range = viewRange.end - viewRange.start;
-                        const newRange = Math.max(10, range * 0.7);
-                        const newStart = Math.max(0, center - newRange / 2);
-                        const newEnd = Math.min(videoDuration, center + newRange / 2);
-                        setViewRange({
-                          start: newStart,
-                          end: newEnd
-                        });
-                      }}
-                      type="button"
-                      title="Zoom In"
-                    >
-                      <Plus className="h-4 w-4 text-white" strokeWidth={2.5} />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="h-9 w-9 rounded-full bg-black/90 border-white/30 hover:bg-white/20 shadow-lg pointer-events-auto"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const center = (viewRange.start + viewRange.end) / 2;
-                        const range = viewRange.end - viewRange.start;
-                        const newRange = Math.min(videoDuration, range * 1.3);
-                        const newStart = Math.max(0, center - newRange / 2);
-                        const newEnd = Math.min(videoDuration, center + newRange / 2);
-                        setViewRange({
-                          start: newStart,
-                          end: newEnd
-                        });
-                      }}
-                      type="button"
-                      title="Zoom Out"
-                    >
-                      <Minus className="h-4 w-4 text-white" strokeWidth={2.5} />
-                    </Button>
-                  </div>
                 </div>
                 
-                {/* תצוגת זמן נוכחי מתחת לגרף */}
-                <div className="text-center">
-                  <div className="text-white text-3xl font-mono font-bold tracking-wider">
-                    {Math.floor(currentTime[0] / 60).toString().padStart(2, '0')}:{Math.floor(currentTime[0] % 60).toString().padStart(2, '0')}.{Math.floor((currentTime[0] % 1) * 10)}
-                  </div>
+                {/* בקרת זום מתחת לגרף */}
+                <div className="mt-3 flex justify-center gap-2">
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="h-7 w-7 rounded-full bg-black/90 border-white/30 hover:bg-white/20 shadow-lg"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const center = (viewRange.start + viewRange.end) / 2;
+                      const range = viewRange.end - viewRange.start;
+                      const newRange = Math.max(5, range * 0.7);
+                      let newStart = Math.max(0, center - newRange / 2);
+                      let newEnd = Math.min(videoDuration, center + newRange / 2);
+                      // Clamp markers so they stay visible
+                      const s = Math.max(newStart, Math.min(endTime[0] - 0.1, startTime[0]));
+                      const eTime = Math.min(newEnd, Math.max(startTime[0] + 0.1, endTime[0]));
+                      setViewRange({ start: newStart, end: newEnd });
+                      setStartTime([s]);
+                      setEndTime([eTime]);
+                    }}
+                    type="button"
+                    title="Zoom In"
+                  >
+                    <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="h-7 w-7 rounded-full bg-black/90 border-white/30 hover:bg-white/20 shadow-lg"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const center = (viewRange.start + viewRange.end) / 2;
+                      const range = viewRange.end - viewRange.start;
+                      const newRange = Math.min(videoDuration, range * 1.3);
+                      let newStart = Math.max(0, center - newRange / 2);
+                      let newEnd = Math.min(videoDuration, center + newRange / 2);
+                      // Clamp markers so they stay visible
+                      const s = Math.max(newStart, Math.min(endTime[0] - 0.1, startTime[0]));
+                      const eTime = Math.min(newEnd, Math.max(startTime[0] + 0.1, endTime[0]));
+                      setViewRange({ start: newStart, end: newEnd });
+                      setStartTime([s]);
+                      setEndTime([eTime]);
+                    }}
+                    type="button"
+                    title="Zoom Out"
+                  >
+                    <Minus className="h-3.5 w-3.5" strokeWidth={2.5} />
+                  </Button>
                 </div>
 
                 {/* Time controls with +/- buttons */}
