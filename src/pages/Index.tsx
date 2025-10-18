@@ -2132,7 +2132,7 @@ const Index = () => {
                 </div>
                 
                 {/* Waveform visualization with cut markers */}
-                <div className="relative h-48 bg-gradient-to-b from-gray-900 to-black rounded-xl overflow-hidden border border-gray-700">
+                <div className="relative h-48 bg-gradient-to-b from-gray-900 to-black rounded-xl overflow-visible border border-gray-700">
 
                   {isLoadingVideo ? (
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -2168,8 +2168,8 @@ const Index = () => {
 
                   {/* Small current time label above waveform */}
                   {!isLoadingVideo && (
-                    <div className="absolute top-1 left-2 z-30">
-                      <span className="px-2 py-0.5 rounded bg-black/50 text-white/80 text-xs font-mono">
+                    <div className="absolute -top-3 left-2 z-30">
+                      <span className="px-1.5 py-0.5 rounded bg-black/50 text-white/70 text-[10px] font-mono tracking-tight">
                         {Math.floor(currentTime[0] / 60).toString().padStart(2, '0')}:{Math.floor(currentTime[0] % 60).toString().padStart(2, '0')}.{Math.floor((currentTime[0] % 1) * 10)}
                       </span>
                     </div>
@@ -2209,7 +2209,32 @@ const Index = () => {
                         document.addEventListener('pointerup', handleUp);
                       }}
                     >
-                      <div className="absolute top-1/2 -translate-y-1/2 -left-8 w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-xl cursor-pointer pointer-events-none">
+                      <div
+                        className="absolute top-1/2 -translate-y-1/2 -left-8 w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-xl cursor-pointer pointer-events-auto"
+                        onPointerDown={(e) => {
+                          e.preventDefault();
+                          const startX = e.clientX;
+                          const startVal = startTime[0];
+                          const container = (e.currentTarget.parentElement!.parentElement! as HTMLElement);
+                          const rect = container.getBoundingClientRect();
+                          try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch {}
+                          const handleMove = (evt: PointerEvent) => {
+                            const deltaX = evt.clientX - startX;
+                            const deltaPercent = deltaX / rect.width;
+                            const newVal = Math.max(
+                              viewRange.start,
+                              Math.min(endTime[0] - 0.1, startVal + deltaPercent * (viewRange.end - viewRange.start))
+                            );
+                            setStartTime([newVal]);
+                          };
+                          const handleUp = () => {
+                            document.removeEventListener('pointermove', handleMove);
+                            document.removeEventListener('pointerup', handleUp);
+                          };
+                          document.addEventListener('pointermove', handleMove);
+                          document.addEventListener('pointerup', handleUp);
+                        }}
+                      >
                         <ChevronLeft className="w-6 h-6 text-white" strokeWidth={3} />
                       </div>
                     </div>
@@ -2249,7 +2274,32 @@ const Index = () => {
                         document.addEventListener('pointerup', handleUp);
                       }}
                     >
-                      <div className="absolute top-1/2 -translate-y-1/2 -right-8 w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-xl cursor-pointer pointer-events-none">
+                      <div
+                        className="absolute top-1/2 -translate-y-1/2 -right-8 w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-xl cursor-pointer pointer-events-auto"
+                        onPointerDown={(e) => {
+                          e.preventDefault();
+                          const startX = e.clientX;
+                          const startVal = endTime[0];
+                          const container = (e.currentTarget.parentElement!.parentElement! as HTMLElement);
+                          const rect = container.getBoundingClientRect();
+                          try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch {}
+                          const handleMove = (evt: PointerEvent) => {
+                            const deltaX = evt.clientX - startX;
+                            const deltaPercent = deltaX / rect.width;
+                            const newVal = Math.max(
+                              startTime[0] + 0.1,
+                              Math.min(viewRange.end, startVal + deltaPercent * (viewRange.end - viewRange.start))
+                            );
+                            setEndTime([newVal]);
+                          };
+                          const handleUp = () => {
+                            document.removeEventListener('pointermove', handleMove);
+                            document.removeEventListener('pointerup', handleUp);
+                          };
+                          document.addEventListener('pointermove', handleMove);
+                          document.addEventListener('pointerup', handleUp);
+                        }}
+                      >
                         <ChevronRight className="w-6 h-6 text-white" strokeWidth={3} />
                       </div>
                     </div>
