@@ -2143,18 +2143,22 @@ const Index = () => {
                     </div>
                   ) : (
                     <>
-                      {/* Real-time audio waveform visualization */}
+                      {/* Real-time audio waveform visualization - Mock data for testing */}
                       <div className="absolute inset-0 flex items-center pointer-events-none">
                         <svg className="w-full h-full pointer-events-none" preserveAspectRatio="none">
-                          {audioData.map((amplitude, i) => {
-                            const x = (i / audioData.length) * 100;
-                            const height = Math.max(10, amplitude);
+                          {Array.from({ length: 150 }).map((_, i) => {
+                            // Create varied amplitude pattern for realistic look
+                            const baseAmplitude = 30 + Math.sin(i * 0.2) * 15 + Math.cos(i * 0.5) * 10;
+                            const noise = Math.random() * 20;
+                            const height = Math.max(15, baseAmplitude + noise);
+                            const x = (i / 150) * 100;
+                            
                             return (
                               <rect
                                 key={i}
                                 x={`${x}%`}
                                 y={`${50 - height / 2}%`}
-                                width="0.4%"
+                                width="0.7%"
                                 height={`${height}%`}
                                 fill="white"
                                 opacity={0.85}
