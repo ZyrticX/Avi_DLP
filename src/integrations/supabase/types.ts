@@ -14,6 +14,160 @@ export type Database = {
   }
   public: {
     Tables: {
+      connected_services: {
+        Row: {
+          access_token: string
+          connected_at: string | null
+          id: string
+          is_active: boolean | null
+          last_synced_at: string | null
+          metadata: Json | null
+          provider: Database["public"]["Enums"]["streaming_provider"]
+          refresh_token: string | null
+          token_expires_at: string | null
+          user_display_name: string | null
+          user_email: string | null
+        }
+        Insert: {
+          access_token: string
+          connected_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_synced_at?: string | null
+          metadata?: Json | null
+          provider: Database["public"]["Enums"]["streaming_provider"]
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          user_display_name?: string | null
+          user_email?: string | null
+        }
+        Update: {
+          access_token?: string
+          connected_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_synced_at?: string | null
+          metadata?: Json | null
+          provider?: Database["public"]["Enums"]["streaming_provider"]
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          user_display_name?: string | null
+          user_email?: string | null
+        }
+        Relationships: []
+      }
+      imported_playlists: {
+        Row: {
+          cover_image_url: string | null
+          description: string | null
+          external_id: string
+          id: string
+          imported_at: string | null
+          is_synced: boolean | null
+          last_updated_at: string | null
+          metadata: Json | null
+          name: string
+          service_id: string | null
+          track_count: number | null
+        }
+        Insert: {
+          cover_image_url?: string | null
+          description?: string | null
+          external_id: string
+          id?: string
+          imported_at?: string | null
+          is_synced?: boolean | null
+          last_updated_at?: string | null
+          metadata?: Json | null
+          name: string
+          service_id?: string | null
+          track_count?: number | null
+        }
+        Update: {
+          cover_image_url?: string | null
+          description?: string | null
+          external_id?: string
+          id?: string
+          imported_at?: string | null
+          is_synced?: boolean | null
+          last_updated_at?: string | null
+          metadata?: Json | null
+          name?: string
+          service_id?: string | null
+          track_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imported_playlists_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "connected_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      imported_tracks: {
+        Row: {
+          album: string | null
+          artist: string
+          cover_image_url: string | null
+          download_status: string | null
+          downloaded_at: string | null
+          duration_seconds: number | null
+          external_id: string
+          file_path: string | null
+          id: string
+          imported_at: string | null
+          metadata: Json | null
+          playlist_id: string | null
+          title: string
+          youtube_search_query: string | null
+          youtube_video_id: string | null
+        }
+        Insert: {
+          album?: string | null
+          artist: string
+          cover_image_url?: string | null
+          download_status?: string | null
+          downloaded_at?: string | null
+          duration_seconds?: number | null
+          external_id: string
+          file_path?: string | null
+          id?: string
+          imported_at?: string | null
+          metadata?: Json | null
+          playlist_id?: string | null
+          title: string
+          youtube_search_query?: string | null
+          youtube_video_id?: string | null
+        }
+        Update: {
+          album?: string | null
+          artist?: string
+          cover_image_url?: string | null
+          download_status?: string | null
+          downloaded_at?: string | null
+          duration_seconds?: number | null
+          external_id?: string
+          file_path?: string | null
+          id?: string
+          imported_at?: string | null
+          metadata?: Json | null
+          playlist_id?: string | null
+          title?: string
+          youtube_search_query?: string | null
+          youtube_video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imported_tracks_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "imported_playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       movies: {
         Row: {
           created_at: string | null
@@ -219,7 +373,11 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      streaming_provider:
+        | "spotify"
+        | "apple_music"
+        | "soundcloud"
+        | "youtube_music"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -346,6 +504,13 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      streaming_provider: [
+        "spotify",
+        "apple_music",
+        "soundcloud",
+        "youtube_music",
+      ],
+    },
   },
 } as const

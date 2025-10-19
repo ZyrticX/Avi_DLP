@@ -1,462 +1,203 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Film, Languages, Download, Upload, Search, Clock, Trash2, Loader2, Globe } from 'lucide-react';
+import { ArrowLeft, Music, Download, RefreshCw, Trash2, Loader2, CheckCircle, XCircle, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useFFmpeg } from '@/hooks/useFFmpeg';
 
-interface Movie {
+interface ConnectedService {
+  id: string;
+  provider: 'spotify' | 'apple_music' | 'soundcloud' | 'youtube_music';
+  user_display_name: string | null;
+  user_email: string | null;
+  connected_at: string;
+  last_synced_at: string | null;
+  is_active: boolean;
+}
+
+interface ImportedPlaylist {
+  id: string;
+  service_id: string;
+  name: string;
+  description: string | null;
+  track_count: number;
+  cover_image_url: string | null;
+  is_synced: boolean;
+  imported_at: string;
+}
+
+interface ImportedTrack {
   id: string;
   title: string;
-  year: number | null;
-  file_id: string;
-  duration: number | null;
+  artist: string;
+  album: string | null;
+  duration_seconds: number | null;
+  download_status: string;
+  youtube_video_id: string | null;
 }
 
-interface Subtitle {
-  id: string;
-  movie_id: string;
-  language: string;
-  file_path: string;
-  is_translated: boolean;
-  source_language: string | null;
-}
-
-interface SubtitleSearchResult {
-  id: string;
-  language: string;
-  file_name: string;
-  download_count: number;
-  rating: number;
-}
-
-const LANGUAGES = [
-  { code: 'en', name: 'English', flag: '🇬🇧' },
-  { code: 'he', name: 'עברית', flag: '🇮🇱' },
-  { code: 'zh', name: '中文', flag: '🇨🇳' },
-  { code: 'ja', name: '日本語', flag: '🇯🇵' },
-  { code: 'ru', name: 'Русский', flag: '🇷🇺' },
-  { code: 'uk', name: 'Українська', flag: '🇺🇦' },
-  { code: 'es', name: 'Español', flag: '🇪🇸' },
-  { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-  { code: 'fr', name: 'Français', flag: '🇫🇷' },
-  { code: 'it', name: 'Italiano', flag: '🇮🇹' },
+const STREAMING_SERVICES = [
+  {
+    id: 'spotify',
+    name: 'Spotify',
+    icon: '🎵',
+    color: 'bg-green-500',
+    description: 'חבר את חשבון Spotify שלך',
+  },
+  {
+    id: 'apple_music',
+    name: 'Apple Music',
+    icon: '🍎',
+    color: 'bg-red-500',
+    description: 'חבר את חשבון Apple Music שלך',
+  },
+  {
+    id: 'soundcloud',
+    name: 'SoundCloud',
+    icon: '☁️',
+    color: 'bg-orange-500',
+    description: 'חבר את חשבון SoundCloud שלך',
+  },
+  {
+    id: 'youtube_music',
+    name: 'YouTube Music',
+    icon: '📺',
+    color: 'bg-red-600',
+    description: 'חבר את חשבון YouTube Music שלך',
+  },
 ];
 
 export default function Movies() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { burnSubtitles, isLoading: ffmpegLoading, progress: ffmpegProgress } = useFFmpeg();
 
-  const [step, setStep] = useState<'upload' | 'identify' | 'search' | 'manage' | 'export'>('upload');
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [movie, setMovie] = useState<Movie | null>(null);
-  const [movieTitle, setMovieTitle] = useState('');
-  const [movieYear, setMovieYear] = useState('');
-  const [searchLanguages, setSearchLanguages] = useState<string[]>(['en']);
-  const [searchResults, setSearchResults] = useState<{ [key: string]: SubtitleSearchResult[] }>({});
-  const [subtitles, setSubtitles] = useState<Subtitle[]>([]);
-  const [selectedSubtitle, setSelectedSubtitle] = useState<Subtitle | null>(null);
-  const [targetLanguage, setTargetLanguage] = useState('he');
-  const [isSearching, setIsSearching] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [isTranslating, setIsTranslating] = useState(false);
-  const [translationProgress, setTranslationProgress] = useState(0);
-  const [timingOffset, setTimingOffset] = useState<number>(0);
-  const [isAdjustingTiming, setIsAdjustingTiming] = useState(false);
-  const [selectedTimingSubtitle, setSelectedTimingSubtitle] = useState<Subtitle | null>(null);
+  const [connectedServices, setConnectedServices] = useState<ConnectedService[]>([]);
+  const [playlists, setPlaylists] = useState<ImportedPlaylist[]>([]);
+  const [selectedPlaylist, setSelectedPlaylist] = useState<ImportedPlaylist | null>(null);
+  const [tracks, setTracks] = useState<ImportedTrack[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [syncProgress, setSyncProgress] = useState(0);
 
-  // Burn-in settings
-  const [fontName, setFontName] = useState('Arial');
-  const [fontSize, setFontSize] = useState(24);
-  const [fontColor, setFontColor] = useState('white');
-  const [position, setPosition] = useState<'top' | 'middle' | 'bottom'>('bottom');
+  useEffect(() => {
+    fetchConnectedServices();
+    fetchPlaylists();
+  }, []);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Max 2GB validation
-    if (file.size > 2 * 1024 * 1024 * 1024) {
-      toast({
-        title: 'קובץ גדול מדי',
-        description: 'גודל הקובץ המקסימלי הוא 2GB',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setUploadedFile(file);
-    
-    toast({
-      title: 'קובץ נטען בהצלחה',
-      description: `${file.name} מוכן לעיבוד`,
-    });
-
-    setStep('identify');
-  };
-
-  const handleIdentifyMovie = async () => {
-    if (!uploadedFile || !movieTitle) {
-      toast({
-        title: 'חסרים פרטים',
-        description: 'אנא הזן את שם הסרט',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    try {
-      // Upload file to storage first
-      const fileExt = uploadedFile.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `temp-media/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('temp-media')
-        .upload(filePath, uploadedFile);
-
-      if (uploadError) throw uploadError;
-
-      // Create uploaded_files record
-      const { data: uploadedFileData, error: fileError } = await supabase
-        .from('uploaded_files')
-        .insert({
-          file_path: filePath,
-          file_size: uploadedFile.size,
-          mime_type: uploadedFile.type,
-          original_filename: uploadedFile.name,
-        })
-        .select()
-        .single();
-
-      if (fileError) throw fileError;
-
-      // Create movie record
-      const { data: movieData, error: movieError } = await supabase
-        .from('movies')
-        .insert({
-          file_id: uploadedFileData.id,
-          title: movieTitle,
-          year: movieYear ? parseInt(movieYear) : null,
-        })
-        .select()
-        .single();
-
-      if (movieError) throw movieError;
-
-      setMovie(movieData);
-      setStep('search');
-
-      toast({
-        title: 'סרט זוהה בהצלחה',
-        description: `${movieTitle} נשמר במערכת`,
-      });
-    } catch (error) {
-      console.error('Error identifying movie:', error);
-      toast({
-        title: 'שגיאה בזיהוי סרט',
-        description: 'נסה שוב',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleSearchSubtitles = async () => {
-    if (!movie || searchLanguages.length === 0) return;
-
-    setIsSearching(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('search-subtitles', {
-        body: {
-          movieTitle: movie.title,
-          year: movie.year,
-          languages: searchLanguages,
-        },
-      });
-
-      if (error) throw error;
-
-      setSearchResults(data.results || {});
-      
-      toast({
-        title: 'חיפוש הושלם',
-        description: `נמצאו כתוביות ב-${Object.keys(data.results || {}).length} שפות`,
-      });
-    } catch (error) {
-      console.error('Search error:', error);
-      toast({
-        title: 'שגיאה בחיפוש',
-        description: 'לא ניתן לחפש כתוביות',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const handleDownloadSubtitle = async (result: SubtitleSearchResult) => {
-    if (!movie) return;
-
-    setIsDownloading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('download-subtitle', {
-        body: {
-          movieId: movie.id,
-          fileId: result.id,
-          language: result.language,
-          fileName: result.file_name,
-        },
-      });
-
-      if (error) throw error;
-
-      // Refresh subtitles list
-      await fetchSubtitles();
-
-      toast({
-        title: 'כתוביות הורדו',
-        description: `${result.file_name} נשמר בהצלחה`,
-      });
-
-      setStep('manage');
-    } catch (error) {
-      console.error('Download error:', error);
-      toast({
-        title: 'שגיאה בהורדה',
-        description: 'לא ניתן להוריד את הכתוביות',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
-  const fetchSubtitles = async () => {
-    if (!movie) return;
-
+  const fetchConnectedServices = async () => {
     const { data, error } = await supabase
-      .from('subtitles')
+      .from('connected_services')
       .select('*')
-      .eq('movie_id', movie.id);
+      .eq('is_active', true)
+      .order('connected_at', { ascending: false });
 
     if (!error && data) {
-      setSubtitles(data);
+      setConnectedServices(data);
     }
   };
 
-  const handleTranslateSubtitle = async (subtitle: Subtitle) => {
-    setIsTranslating(true);
-    setTranslationProgress(0);
+  const fetchPlaylists = async () => {
+    const { data, error } = await supabase
+      .from('imported_playlists')
+      .select('*')
+      .order('imported_at', { ascending: false });
+
+    if (!error && data) {
+      setPlaylists(data);
+    }
+  };
+
+  const fetchTracks = async (playlistId: string) => {
+    const { data, error } = await supabase
+      .from('imported_tracks')
+      .select('*')
+      .eq('playlist_id', playlistId)
+      .order('imported_at', { ascending: false });
+
+    if (!error && data) {
+      setTracks(data);
+    }
+  };
+
+  const handleConnectService = async (serviceId: string) => {
+    toast({
+      title: 'בקרוב!',
+      description: `חיבור ל-${STREAMING_SERVICES.find(s => s.id === serviceId)?.name} יהיה זמין בקרוב`,
+    });
     
+    // TODO: Implement OAuth flow for each service
+    // For now, showing the user that this feature is coming soon
+  };
+
+  const handleSyncPlaylists = async (serviceId: string) => {
+    setIsLoading(true);
+    setSyncProgress(0);
+
     try {
-      // Simulate progress for UX
-      const progressInterval = setInterval(() => {
-        setTranslationProgress((prev) => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 300);
+      // Simulate progress
+      const interval = setInterval(() => {
+        setSyncProgress((prev) => Math.min(prev + 10, 90));
+      }, 500);
 
-      // First, check if subtitles already exist in target language
-      const existingSubtitlesInTargetLang = searchResults[targetLanguage];
-      
-      if (existingSubtitlesInTargetLang && existingSubtitlesInTargetLang.length > 0) {
-        // Found existing subtitles in target language - download them instead of translating
-        console.log('Found existing subtitles in target language:', targetLanguage);
-        
-        // Use the highest rated one
-        const bestSubtitle = existingSubtitlesInTargetLang[0];
-        
-        const { data, error } = await supabase.functions.invoke('download-subtitle', {
-          body: {
-            movieId: movie?.id,
-            fileId: bestSubtitle.id,
-            language: targetLanguage,
-            fileName: bestSubtitle.file_name,
-          },
-        });
+      // TODO: Call edge function to sync playlists
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
-        if (error) throw error;
+      clearInterval(interval);
+      setSyncProgress(100);
 
-        // Mark as "translated" in the database for UI consistency
-        const { error: updateError } = await supabase
-          .from('subtitles')
-          .update({ 
-            is_translated: true,
-            source_language: subtitle.language 
-          })
-          .eq('id', data.subtitle.id);
-
-        if (updateError) {
-          console.error('Failed to mark as translated:', updateError);
-        }
-
-        clearInterval(progressInterval);
-        setTranslationProgress(100);
-
-        toast({
-          title: 'כתוביות נוספו בהצלחה',
-          description: `נמצאו כתוביות מוכנות ב${LANGUAGES.find((l) => l.code === targetLanguage)?.name}`,
-        });
-      } else {
-        // No existing subtitles found - actually translate
-        console.log('No existing subtitles found, translating...');
-        
-        const { data, error } = await supabase.functions.invoke('translate-subtitles', {
-          body: {
-            movieId: movie?.id,
-            sourceSubtitleId: subtitle.id,
-            targetLanguage,
-          },
-        });
-
-        if (error) throw error;
-
-        clearInterval(progressInterval);
-        setTranslationProgress(100);
-
-        toast({
-          title: 'תרגום הושלם',
-          description: `כתוביות תורגמו ל${LANGUAGES.find((l) => l.code === targetLanguage)?.name}`,
-        });
-      }
-
-      await fetchSubtitles();
-
-    } catch (error) {
-      console.error('Translation/download error:', error);
       toast({
-        title: 'שגיאה בתרגום',
-        description: 'לא ניתן לתרגם את הכתוביות',
+        title: 'סנכרון הושלם!',
+        description: 'הפלייליסטים שלך עודכנו',
+      });
+
+      await fetchPlaylists();
+    } catch (error) {
+      console.error('Sync error:', error);
+      toast({
+        title: 'שגיאה בסנכרון',
+        description: 'נסה שוב מאוחר יותר',
         variant: 'destructive',
       });
     } finally {
-      setIsTranslating(false);
-      setTranslationProgress(0);
+      setIsLoading(false);
+      setSyncProgress(0);
     }
   };
 
-  const handleDeleteSubtitle = async (subtitleId: string) => {
-    try {
-      const { error } = await supabase.from('subtitles').delete().eq('id', subtitleId);
-      if (error) throw error;
+  const handleDownloadPlaylist = async (playlist: ImportedPlaylist) => {
+    setSelectedPlaylist(playlist);
+    await fetchTracks(playlist.id);
 
-      await fetchSubtitles();
-      toast({
-        title: 'כתוביות נמחקו',
-        description: 'הכתוביות הוסרו בהצלחה',
-      });
-    } catch (error) {
-      console.error('Delete error:', error);
-      toast({
-        title: 'שגיאה במחיקה',
-        description: 'לא ניתן למחוק את הכתוביות',
-        variant: 'destructive',
-      });
-    }
+    toast({
+      title: 'מתחיל הורדה',
+      description: `מוריד ${playlist.track_count} שירים מ-${playlist.name}`,
+    });
+
+    // TODO: Implement download logic
   };
 
-  const handleAdjustTiming = async () => {
-    if (!selectedTimingSubtitle || timingOffset === 0) {
-      toast({
-        title: 'נתונים חסרים',
-        description: 'נא לבחור כתוביות ולהזין אופסט זמן',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsAdjustingTiming(true);
-
+  const handleDisconnectService = async (serviceId: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('adjust-subtitle-timing', {
-        body: {
-          subtitleId: selectedTimingSubtitle.id,
-          offsetSeconds: timingOffset,
-        },
-      });
+      const { error } = await supabase
+        .from('connected_services')
+        .update({ is_active: false })
+        .eq('id', serviceId);
 
       if (error) throw error;
 
-      await fetchSubtitles();
-
       toast({
-        title: 'זמני כתוביות עודכנו',
-        description: `הכתוביות הוזזו ב-${timingOffset} שניות`,
+        title: 'שירות נותק',
+        description: 'השירות נותק בהצלחה',
       });
 
-      setTimingOffset(0);
-      setSelectedTimingSubtitle(null);
+      await fetchConnectedServices();
     } catch (error) {
-      console.error('Timing adjustment error:', error);
+      console.error('Disconnect error:', error);
       toast({
-        title: 'שגיאה בהתאמת זמנים',
-        description: 'לא ניתן להתאים את זמני הכתוביות',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsAdjustingTiming(false);
-    }
-  };
-
-  const handleBurnSubtitles = async () => {
-    if (!uploadedFile || !selectedSubtitle) {
-      toast({
-        title: 'חסרים נתונים',
-        description: 'בחר כתוביות להדבקה',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    try {
-      // Download subtitle file from storage
-      const { data: subtitleData, error: downloadError } = await supabase.storage
-        .from('movie-subtitles')
-        .download(selectedSubtitle.file_path);
-
-      if (downloadError) throw downloadError;
-
-      const subtitleFile = new File([subtitleData], 'subtitle.srt', { type: 'text/plain' });
-
-      const result = await burnSubtitles(uploadedFile, subtitleFile, {
-        fontName,
-        fontSize,
-        fontColor,
-        position,
-      });
-
-      if (result) {
-        const url = URL.createObjectURL(result);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${movie?.title}_subtitled.mp4`;
-        a.click();
-        URL.revokeObjectURL(url);
-
-        toast({
-          title: 'סרט ייוצא בהצלחה!',
-          description: 'הסרט עם הכתוביות מוכן להורדה',
-        });
-      }
-    } catch (error) {
-      console.error('Burn error:', error);
-      toast({
-        title: 'שגיאה ביצוא',
-        description: 'לא ניתן ליצא את הסרט',
+        title: 'שגיאה',
+        description: 'לא ניתן לנתק את השירות',
         variant: 'destructive',
       });
     }
@@ -473,446 +214,237 @@ export default function Movies() {
             </Button>
             <div>
               <h1 className="text-4xl font-bold flex items-center gap-2">
-                <Film className="h-8 w-8" />
-                תרגום וכתוביות לסרטים
+                <Music className="h-8 w-8" />
+                Streaming Services
               </h1>
               <p className="text-muted-foreground mt-1">
-                העלה סרט, חפש כתוביות, תרגם והדבק אותן לווידאו
+                חבר את שירותי הסטרימינג שלך וייבא את כל השירים
               </p>
             </div>
           </div>
         </div>
 
-        {/* Progress Steps */}
-        <div className="flex gap-2 mb-8">
-          {['upload', 'identify', 'search', 'manage', 'export'].map((s, i) => (
-            <div key={s} className="flex-1">
-              <div className={`h-2 rounded-full ${
-                ['upload', 'identify', 'search', 'manage', 'export'].indexOf(step) >= i 
-                  ? 'bg-primary' 
-                  : 'bg-muted'
-              }`} />
-            </div>
-          ))}
-        </div>
-
-        {/* Step 1: Upload */}
-        {step === 'upload' && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Upload className="h-5 w-5" />
-                שלב 1: העלאת סרט
-              </CardTitle>
-              <CardDescription>
-                בחר קובץ וידאו (מקסימום 2GB)
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-12 text-center hover:border-primary/50 transition-colors">
-                <Input
-                  type="file"
-                  accept="video/*"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  id="video-upload"
-                />
-                <Label htmlFor="video-upload" className="cursor-pointer">
-                  <Film className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-lg font-medium">לחץ לבחירת קובץ וידאו</p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    MP4, MOV, AVI, MKV - עד 2GB
-                  </p>
-                </Label>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Step 2: Identify */}
-        {step === 'identify' && uploadedFile && (
-          <Card>
-            <CardHeader>
-              <CardTitle>שלב 2: זיהוי סרט</CardTitle>
-              <CardDescription>הזן את פרטי הסרט</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label>קובץ נבחר</Label>
-                <Badge variant="secondary" className="mt-2">
-                  {uploadedFile.name}
-                </Badge>
-              </div>
-
-              <div>
-                <Label htmlFor="title">שם הסרט *</Label>
-                <Input
-                  id="title"
-                  placeholder="לדוגמה: Inception"
-                  value={movieTitle}
-                  onChange={(e) => setMovieTitle(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="year">שנה</Label>
-                <Input
-                  id="year"
-                  type="number"
-                  placeholder="לדוגמה: 2010"
-                  value={movieYear}
-                  onChange={(e) => setMovieYear(e.target.value)}
-                />
-              </div>
-
-              <Button onClick={handleIdentifyMovie} className="w-full">
-                המשך לחיפוש כתוביות
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Step 3: Search */}
-        {step === 'search' && movie && (
-          <div className="space-y-6">
+        {/* Connected Services */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold mb-4">שירותים מחוברים</h2>
+          {connectedServices.length === 0 ? (
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Search className="h-5 w-5" />
-                  שלב 3: חיפוש כתוביות
-                </CardTitle>
-                <CardDescription>
-                  חפש כתוביות עבור {movie.title} {movie.year && `(${movie.year})`}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label>בחר שפות לחיפוש</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mt-2">
-                    {LANGUAGES.map((lang) => (
-                      <Button
-                        key={lang.code}
-                        variant={searchLanguages.includes(lang.code) ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => {
-                          setSearchLanguages((prev) =>
-                            prev.includes(lang.code)
-                              ? prev.filter((l) => l !== lang.code)
-                              : [...prev, lang.code]
-                          );
-                        }}
-                      >
-                        {lang.flag} {lang.name}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                <Button 
-                  onClick={handleSearchSubtitles} 
-                  disabled={isSearching || searchLanguages.length === 0}
-                  className="w-full"
-                >
-                  {isSearching ? 'מחפש...' : 'חפש כתוביות'}
-                </Button>
+              <CardContent className="py-8">
+                <p className="text-center text-muted-foreground">
+                  עדיין לא חיברת אף שירות. התחל בחיבור שירות ראשון למטה 👇
+                </p>
               </CardContent>
             </Card>
-
-            {/* Search Results */}
-            {Object.keys(searchResults).length > 0 && (
-              <div className="grid gap-4">
-                {Object.entries(searchResults).map(([lang, results]) => (
-                  <Card key={lang}>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {connectedServices.map((service) => {
+                const serviceInfo = STREAMING_SERVICES.find((s) => s.id === service.provider);
+                return (
+                  <Card key={service.id}>
                     <CardHeader>
-                      <CardTitle className="text-lg">
-                        {LANGUAGES.find((l) => l.code === lang)?.flag}{' '}
-                        {LANGUAGES.find((l) => l.code === lang)?.name}
-                      </CardTitle>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">{serviceInfo?.icon}</span>
+                          <CardTitle className="text-lg">{serviceInfo?.name}</CardTitle>
+                        </div>
+                        <Badge variant="secondary">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          מחובר
+                        </Badge>
+                      </div>
                     </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        {results.map((result) => (
-                          <div
-                            key={result.id}
-                            className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
-                          >
-                            <div>
-                              <p className="font-medium">{result.file_name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                ⭐ {result.rating.toFixed(1)} • 
-                                ⬇️ {result.download_count.toLocaleString()} הורדות
-                              </p>
-                            </div>
-                            <Button
-                              size="sm"
-                              onClick={() => handleDownloadSubtitle(result)}
-                              disabled={isDownloading}
-                            >
-                              <Download className="h-4 w-4 mr-2" />
-                              הורד
-                            </Button>
-                          </div>
-                        ))}
+                    <CardContent className="space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        {service.user_display_name || service.user_email || 'משתמש'}
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => handleSyncPlaylists(service.id)}
+                          disabled={isLoading}
+                        >
+                          <RefreshCw className={`h-4 w-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+                          סנכרן
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDisconnectService(service.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
+        </div>
 
-        {/* Step 4: Manage & Translate */}
-        {step === 'manage' && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Languages className="h-5 w-5" />
-                שלב 4: ניהול ותרגום כתוביות
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <Button onClick={fetchSubtitles} variant="outline">
-                רענן רשימת כתוביות
-              </Button>
-
-              {subtitles.length > 0 ? (
-                <div className="space-y-4">
-                  {subtitles.map((sub) => (
-                    <div key={sub.id} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <Badge variant={sub.is_translated ? 'secondary' : 'default'}>
-                              {LANGUAGES.find((l) => l.code === sub.language)?.flag}{' '}
-                              {LANGUAGES.find((l) => l.code === sub.language)?.name}
-                            </Badge>
-                            {sub.is_translated && (
-                              <Badge variant="outline">
-                                מתורגם מ-{sub.source_language}
-                              </Badge>
-                            )}
-                            {sub.file_path.includes('_offset') && (
-                              <Badge variant="outline" className="text-xs">
-                                זמנים מותאמים
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setSelectedTimingSubtitle(sub)}
-                          >
-                            <Clock className="h-4 w-4 mr-1" />
-                            התאם זמנים
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDeleteSubtitle(sub.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant={selectedSubtitle?.id === sub.id ? 'default' : 'outline'}
-                            onClick={() => setSelectedSubtitle(sub)}
-                          >
-                            {selectedSubtitle?.id === sub.id ? 'נבחר' : 'בחר להדבקה'}
-                          </Button>
-                        </div>
-                      </div>
-
-                      {!sub.is_translated && (
-                        <div className="flex gap-2 items-end">
-                          <div className="flex-1">
-                            <Label>תרגם לשפה</Label>
-                            <Select value={targetLanguage} onValueChange={setTargetLanguage}>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {LANGUAGES.filter((l) => l.code !== sub.language).map((lang) => (
-                                  <SelectItem key={lang.code} value={lang.code}>
-                                    {lang.flag} {lang.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <Button
-                            onClick={() => handleTranslateSubtitle(sub)}
-                            disabled={isTranslating}
-                          >
-                            תרגם
-                          </Button>
-                        </div>
-                      )}
-
-                      {isTranslating && translationProgress > 0 && (
-                        <Progress value={translationProgress} className="mt-2" />
-                      )}
-                    </div>
-                  ))}
+        {/* Sync Progress */}
+        {isLoading && syncProgress > 0 && (
+          <Card className="mb-8">
+            <CardContent className="py-6">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>מסנכרן פלייליסטים...</span>
+                  <span>{syncProgress}%</span>
                 </div>
-              ) : (
-                <p className="text-muted-foreground text-center py-8">
-                  אין כתוביות זמינות. חזור לשלב החיפוש.
-                </p>
-              )}
-
-              <Separator />
-
-              <Button onClick={() => setStep('export')} className="w-full" disabled={!selectedSubtitle}>
-                המשך להדבקה וייצוא
-              </Button>
-
-              {/* Timing Adjustment Dialog */}
-              <Dialog open={selectedTimingSubtitle !== null} onOpenChange={(open) => !open && setSelectedTimingSubtitle(null)}>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>התאמת זמני כתוביות</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <p className="text-sm text-muted-foreground">
-                      אם הכתוביות מאחרות או מקדימות את הדיבור, תוכל להתאים את הזמנים כאן.
-                    </p>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">
-                        אופסט זמן (בשניות)
-                      </Label>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        value={timingOffset}
-                        onChange={(e) => setTimingOffset(parseFloat(e.target.value) || 0)}
-                        placeholder="לדוגמה: -2.5 או +3"
-                        className="text-center"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        • מספר שלילי (-) להזיז את הכתוביות קדימה בזמן<br />
-                        • מספר חיובי (+) להזיז את הכתוביות אחורה בזמן
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setSelectedTimingSubtitle(null);
-                        setTimingOffset(0);
-                      }}
-                    >
-                      ביטול
-                    </Button>
-                    <Button
-                      onClick={handleAdjustTiming}
-                      disabled={isAdjustingTiming || timingOffset === 0}
-                    >
-                      {isAdjustingTiming ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          מתאים...
-                        </>
-                      ) : (
-                        <>
-                          <Clock className="h-4 w-4 mr-2" />
-                          התאם זמנים
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                <Progress value={syncProgress} />
+              </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Step 5: Export */}
-        {step === 'export' && selectedSubtitle && (
-          <Card>
-            <CardHeader>
-              <CardTitle>שלב 5: הדבקה וייצוא</CardTitle>
-              <CardDescription>התאם את הגדרות הכתוביות ויצא את הסרט</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>גופן</Label>
-                  <Select value={fontName} onValueChange={setFontName}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Arial">Arial</SelectItem>
-                      <SelectItem value="Tahoma">Tahoma</SelectItem>
-                      <SelectItem value="Courier">Courier</SelectItem>
-                      <SelectItem value="Times New Roman">Times New Roman</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+        {/* Available Services to Connect */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold mb-4">חבר שירותים חדשים</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {STREAMING_SERVICES.filter(
+              (service) => !connectedServices.some((cs) => cs.provider === service.id)
+            ).map((service) => (
+              <Card key={service.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-3xl">{service.icon}</span>
+                    <CardTitle>{service.name}</CardTitle>
+                  </div>
+                  <CardDescription>{service.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    className="w-full"
+                    onClick={() => handleConnectService(service.id)}
+                  >
+                    חבר עכשיו
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
 
-                <div>
-                  <Label>גודל גופן</Label>
-                  <Input
-                    type="number"
-                    value={fontSize}
-                    onChange={(e) => setFontSize(parseInt(e.target.value) || 24)}
-                    min={16}
-                    max={48}
-                  />
-                </div>
+        {/* Imported Playlists */}
+        {playlists.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold mb-4">הפלייליסטים שלי</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {playlists.map((playlist) => (
+                <Card
+                  key={playlist.id}
+                  className="hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => handleDownloadPlaylist(playlist)}
+                >
+                  <CardHeader>
+                    {playlist.cover_image_url && (
+                      <img
+                        src={playlist.cover_image_url}
+                        alt={playlist.name}
+                        className="w-full h-48 object-cover rounded-lg mb-4"
+                      />
+                    )}
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="truncate">{playlist.name}</span>
+                      {playlist.is_synced && (
+                        <Badge variant="secondary">
+                          <Download className="h-3 w-3 mr-1" />
+                          הורד
+                        </Badge>
+                      )}
+                    </CardTitle>
+                    {playlist.description && (
+                      <CardDescription className="line-clamp-2">
+                        {playlist.description}
+                      </CardDescription>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <span>{playlist.track_count} שירים</span>
+                      <Button size="sm" variant="outline">
+                        <Play className="h-4 w-4 mr-1" />
+                        הורד הכל
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
 
-                <div>
-                  <Label>צבע</Label>
-                  <Select value={fontColor} onValueChange={setFontColor}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="white">לבן</SelectItem>
-                      <SelectItem value="yellow">צהוב</SelectItem>
-                      <SelectItem value="black">שחור</SelectItem>
-                    </SelectContent>
-                  </Select>
+        {/* Selected Playlist Tracks */}
+        {selectedPlaylist && tracks.length > 0 && (
+          <div>
+            <h2 className="text-2xl font-bold mb-4">
+              שירים מ-{selectedPlaylist.name}
+            </h2>
+            <Card>
+              <CardContent className="p-0">
+                <div className="divide-y">
+                  {tracks.map((track, index) => (
+                    <div
+                      key={track.id}
+                      className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-4 flex-1">
+                        <span className="text-muted-foreground w-8 text-right">
+                          {index + 1}
+                        </span>
+                        <div className="flex-1">
+                          <p className="font-medium">{track.title}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {track.artist} {track.album && `• ${track.album}`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        {track.duration_seconds && (
+                          <span className="text-sm text-muted-foreground">
+                            {Math.floor(track.duration_seconds / 60)}:
+                            {(track.duration_seconds % 60).toString().padStart(2, '0')}
+                          </span>
+                        )}
+                        <Badge
+                          variant={
+                            track.download_status === 'completed'
+                              ? 'default'
+                              : track.download_status === 'downloading'
+                              ? 'secondary'
+                              : 'outline'
+                          }
+                        >
+                          {track.download_status === 'completed' && (
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                          )}
+                          {track.download_status === 'downloading' && (
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          )}
+                          {track.download_status === 'failed' && (
+                            <XCircle className="h-3 w-3 mr-1" />
+                          )}
+                          {track.download_status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
                 </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
-                <div>
-                  <Label>מיקום</Label>
-                  <Select value={position} onValueChange={(v: any) => setPosition(v)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="top">למעלה</SelectItem>
-                      <SelectItem value="middle">באמצע</SelectItem>
-                      <SelectItem value="bottom">למטה</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {ffmpegLoading && (
-                <div className="space-y-2">
-                  <Label>מעבד וידאו...</Label>
-                  <Progress value={ffmpegProgress} />
-                  <p className="text-sm text-muted-foreground text-center">
-                    {ffmpegProgress}% הושלם
-                  </p>
-                </div>
-              )}
-
-              <Button
-                onClick={handleBurnSubtitles}
-                disabled={ffmpegLoading}
-                className="w-full"
-                size="lg"
-              >
-                <Download className="h-5 w-5 mr-2" />
-                הדבק כתוביות ויצא סרט
-              </Button>
+        {/* Empty State */}
+        {connectedServices.length === 0 && playlists.length === 0 && (
+          <Card className="mt-8">
+            <CardContent className="py-16 text-center">
+              <Music className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-2xl font-bold mb-2">התחל עכשיו!</h3>
+              <p className="text-muted-foreground mb-6">
+                חבר את שירותי הסטרימינג שלך כדי להתחיל לייבא את המוזיקה שלך
+              </p>
             </CardContent>
           </Card>
         )}

@@ -26,3 +26,9 @@ verify_jwt = false
 
 [functions.cleanup-expired-files]
 verify_jwt = false
+
+[functions.connect-streaming-service]
+verify_jwt = false
+
+[functions.sync-streaming-playlists]
+verify_jwt = false
