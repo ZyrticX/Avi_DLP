@@ -2144,8 +2144,8 @@ const Index = () => {
                   ) : (
                     <>
                       {/* Real-time audio waveform visualization */}
-                      <div className="absolute inset-0 flex items-center">
-                        <svg className="w-full h-full" preserveAspectRatio="none">
+                      <div className="absolute inset-0 flex items-center pointer-events-none">
+                        <svg className="w-full h-full pointer-events-none" preserveAspectRatio="none">
                           {audioData.map((amplitude, i) => {
                             const x = (i / audioData.length) * 100;
                             const height = Math.max(10, amplitude);
@@ -2168,7 +2168,13 @@ const Index = () => {
 
                   {/* Small current time label above waveform */}
                   {!isLoadingVideo && (
-                    <div className="absolute -top-3 left-2 z-30">
+                    <div
+                      className="absolute -top-3 z-30 -translate-x-1/2"
+                      style={{
+                        left: `${((currentTime[0] - viewRange.start) / (viewRange.end - viewRange.start)) * 100}%`,
+                        display: currentTime[0] >= viewRange.start && currentTime[0] <= viewRange.end ? 'block' : 'none'
+                      }}
+                    >
                       <span className="px-1.5 py-0.5 rounded bg-black/50 text-white/70 text-[10px] font-mono tracking-tight">
                         {Math.floor(currentTime[0] / 60).toString().padStart(2, '0')}:{Math.floor(currentTime[0] % 60).toString().padStart(2, '0')}.{Math.floor((currentTime[0] % 1) * 10)}
                       </span>
@@ -2178,7 +2184,7 @@ const Index = () => {
                   {/* Start marker - Red vertical line with orange/white arrow */}
                   {!isLoadingVideo && (
                     <div
-                      className="absolute top-0 h-full w-1 bg-red-500 cursor-grab active:cursor-grabbing z-10 shadow-lg shadow-red-500/50 touch-none select-none"
+                      className="absolute top-0 h-full w-1 bg-red-500 cursor-grab active:cursor-grabbing z-30 shadow-lg shadow-red-500/50 touch-none select-none pointer-events-auto"
                       style={{
                         left: `${((startTime[0] - viewRange.start) / (viewRange.end - viewRange.start)) * 100}%`,
                         display: startTime[0] >= viewRange.start && startTime[0] <= viewRange.end ? 'block' : 'none',
@@ -2243,7 +2249,7 @@ const Index = () => {
                   {/* End marker - Red vertical line with orange/white arrow */}
                   {!isLoadingVideo && (
                     <div
-                      className="absolute top-0 h-full w-1 bg-red-500 cursor-grab active:cursor-grabbing z-10 shadow-lg shadow-red-500/50 touch-none select-none"
+                      className="absolute top-0 h-full w-1 bg-red-500 cursor-grab active:cursor-grabbing z-30 shadow-lg shadow-red-500/50 touch-none select-none pointer-events-auto"
                       style={{
                         left: `${((endTime[0] - viewRange.start) / (viewRange.end - viewRange.start)) * 100}%`,
                         display: endTime[0] >= viewRange.start && endTime[0] <= viewRange.end ? 'block' : 'none',
