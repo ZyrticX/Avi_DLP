@@ -1519,13 +1519,38 @@ const Index = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Input
-                placeholder="https://youtube.com/watch?v=..."
-                value={youtubeUrl}
-                onChange={(e) => setYoutubeUrl(e.target.value)}
-                className="text-lg p-4 border-secondary/30"
-                dir="ltr"
-              />
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="px-4"
+                  onClick={async () => {
+                    try {
+                      const text = await navigator.clipboard.readText();
+                      setYoutubeUrl(text);
+                      toast({
+                        title: "הודבק מהזיכרון",
+                        description: "הכתובת הודבקה בהצלחה",
+                      });
+                    } catch (error) {
+                      toast({
+                        title: "שגיאה",
+                        description: "לא ניתן להדביק מהזיכרון",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                >
+                  Paste
+                </Button>
+                <Input
+                  placeholder="https://youtube.com/watch?v=..."
+                  value={youtubeUrl}
+                  onChange={(e) => setYoutubeUrl(e.target.value)}
+                  className="text-lg p-4 border-secondary/30 flex-1"
+                  dir="ltr"
+                />
+              </div>
               <Button 
                 size="lg" 
                 className="w-full text-lg bg-secondary hover:bg-secondary/90"
@@ -2143,23 +2168,21 @@ const Index = () => {
                     </div>
                   ) : (
                     <>
-                      {/* Real-time audio waveform visualization - Mock data for testing */}
+                      {/* Real-time audio waveform visualization */}
                       <div className="absolute inset-0 flex items-center pointer-events-none">
                         <svg className="w-full h-full pointer-events-none" preserveAspectRatio="none">
-                          {Array.from({ length: 150 }).map((_, i) => {
-                            // Create varied amplitude pattern for realistic look
-                            const baseAmplitude = 30 + Math.sin(i * 0.2) * 15 + Math.cos(i * 0.5) * 10;
-                            const noise = Math.random() * 20;
-                            const height = Math.max(15, baseAmplitude + noise);
-                            const x = (i / 150) * 100;
+                          {audioData.map((height, i) => {
+                            const x = (i / audioData.length) * 100;
+                            // Only show waveform when playing or when we have audio data
+                            const displayHeight = (isPlaying || currentEditingFile) ? Math.max(5, height) : 20;
                             
                             return (
                               <rect
                                 key={i}
                                 x={`${x}%`}
-                                y={`${50 - height / 2}%`}
-                                width="0.7%"
-                                height={`${height}%`}
+                                y={`${50 - displayHeight / 2}%`}
+                                width={`${100 / audioData.length}%`}
+                                height={`${displayHeight}%`}
                                 fill="white"
                                 opacity={0.85}
                               />
@@ -2418,10 +2441,10 @@ const Index = () => {
                             console.log('Start time minus:', newValue);
                             setStartTime([newValue]);
                           }}
-                          className="w-12 h-12 rounded-full bg-white hover:bg-white/90 active:bg-white/80 transition-colors flex items-center justify-center shadow-lg cursor-pointer"
+                          className="w-12 h-12 rounded-full bg-gray-500 hover:bg-gray-400 active:bg-gray-600 transition-colors flex items-center justify-center shadow-lg cursor-pointer"
                           type="button"
                         >
-                          <Minus className="w-6 h-6 text-orange-500" strokeWidth={3} />
+                          <Minus className="w-6 h-6 text-white" strokeWidth={3} />
                         </button>
                         <button
                           onClick={(e) => {
@@ -2431,10 +2454,10 @@ const Index = () => {
                             console.log('Start time plus:', newValue);
                             setStartTime([newValue]);
                           }}
-                          className="w-12 h-12 rounded-full bg-white hover:bg-white/90 active:bg-white/80 transition-colors flex items-center justify-center shadow-lg cursor-pointer"
+                          className="w-12 h-12 rounded-full bg-gray-500 hover:bg-gray-400 active:bg-gray-600 transition-colors flex items-center justify-center shadow-lg cursor-pointer"
                           type="button"
                         >
-                          <Plus className="w-6 h-6 text-orange-500" strokeWidth={3} />
+                          <Plus className="w-6 h-6 text-white" strokeWidth={3} />
                         </button>
                       </div>
                     </div>
@@ -2452,10 +2475,10 @@ const Index = () => {
                             console.log('End time minus:', newValue);
                             setEndTime([newValue]);
                           }}
-                          className="w-12 h-12 rounded-full bg-white hover:bg-white/90 active:bg-white/80 transition-colors flex items-center justify-center shadow-lg cursor-pointer"
+                          className="w-12 h-12 rounded-full bg-gray-500 hover:bg-gray-400 active:bg-gray-600 transition-colors flex items-center justify-center shadow-lg cursor-pointer"
                           type="button"
                         >
-                          <Minus className="w-6 h-6 text-orange-500" strokeWidth={3} />
+                          <Minus className="w-6 h-6 text-white" strokeWidth={3} />
                         </button>
                         <button
                           onClick={(e) => {
@@ -2465,10 +2488,10 @@ const Index = () => {
                             console.log('End time plus:', newValue);
                             setEndTime([newValue]);
                           }}
-                          className="w-12 h-12 rounded-full bg-white hover:bg-white/90 active:bg-white/80 transition-colors flex items-center justify-center shadow-lg cursor-pointer"
+                          className="w-12 h-12 rounded-full bg-gray-500 hover:bg-gray-400 active:bg-gray-600 transition-colors flex items-center justify-center shadow-lg cursor-pointer"
                           type="button"
                         >
-                          <Plus className="w-6 h-6 text-orange-500" strokeWidth={3} />
+                          <Plus className="w-6 h-6 text-white" strokeWidth={3} />
                         </button>
                       </div>
                       <div className="flex-1 text-right">
