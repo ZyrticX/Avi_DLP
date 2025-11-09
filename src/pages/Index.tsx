@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useFFmpeg, AudioFormat, VideoResolution } from "@/hooks/useFFmpeg";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { getYouTubeDownloaderUrl, getAuthHeaders } from "@/config/api";
+import { extractYouTubeVideoId, VIDEO_CONFIG } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -210,12 +212,144 @@ const SortableItem = ({ segment, index, onEdit, onPlay, onDelete, onDownload, on
   );
 };
 
-interface ConnectedPlatform {
-  name: string;
-  icon: string;
-  favorites: Array<{ id: string; title: string; thumbnail: string }>;
-  playlists: Array<{ id: string; name: string; count: number }>;
-}
+// Format seconds to HH:MM:SS
+const formatTime = (seconds: number): string => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+};
+
+// SortableItem component for drag and drop segments
+const SortableItem = ({ segment, index, onEdit, onPlay, onDelete, onDownload, onIdentify }: {
+  segment: {
+    id: number, 
+    start: number, 
+    end: number, 
+    title: string, 
+    blob?: Blob, 
+    downloadUrl?: string,
+    status?: 'pending' | 'processing' | 'identified' | 'ready',
+    dbId?: string,
+    artist?: string
+  },
+  index: number,
+  onEdit: (id: number, newTitle: string) => void,
+  onPlay: (id: number) => void,
+  onDelete: (id: number) => void,
+  onDownload?: (id: number) => void,
+  onIdentify?: (id: number) => void
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(segment.title);
+  
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: segment.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  const handleSave = () => {
+    onEdit(segment.id, editTitle);
+    setIsEditing(false);
+  };
+
+  // Get badge color and text based on status
+  const getStatusBadge = () => {
+    switch (segment.status) {
+      case 'processing':
+        return <Badge variant="secondary" className="bg-blue-500/20 text-blue-300">⚙️ מעבד</Badge>;
+      case 'identified':
+        return <Badge variant="secondary" className="bg-green-500/20 text-green-300">✓ מזוהה</Badge>;
+      case 'ready':
+        return <Badge variant="secondary" className="bg-purple-500/20 text-purple-300">✨ מוכן</Badge>;
+      default:
+        return <Badge variant="outline" className="text-muted-foreground">⏳ ממתין</Badge>;
+    }
+  };
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      className="p-4 bg-background/50 rounded-lg border border-secondary/20 space-y-3"
+    >
+      {/* Header with drag handle and number */}
+      <div className="flex items-center gap-4">
+        <div 
+          {...attributes} 
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing p-1"
+        >
+          <GripVertical className="w-5 h-5 text-muted-foreground" />
+        </div>
+        <span className="text-2xl font-bold text-secondary">{index + 1}</span>
+        {getStatusBadge()}
+        <div className="flex-1 text-muted-foreground">
+          {formatTime(segment.start)} - {formatTime(segment.end)}
+        </div>
+        <Button variant="outline" size="sm" onClick={() => onPlay(segment.id)}>
+          <Play className="w-4 h-4 mr-1" />
+          Play
+        </Button>
+        {segment.blob && onIdentify && (
+          <Button variant="outline" size="sm" onClick={() => onIdentify(segment.id)}>
+            <Music className="w-4 h-4 mr-1" />
+            זיהוי
+          </Button>
+        )}
+        {(segment.blob || segment.downloadUrl) && onDownload && (
+          <Button variant="outline" size="sm" onClick={() => onDownload(segment.id)}>
+            <Download className="w-4 h-4 mr-1" />
+            הורד
+          </Button>
+        )}
+        <Button variant="outline" size="sm" onClick={() => onDelete(segment.id)}>
+          <X className="w-4 h-4" />
+        </Button>
+      </div>
+
+      {/* Title */}
+      {isEditing ? (
+        <div className="flex gap-2">
+          <Input
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSave();
+              if (e.key === 'Escape') setIsEditing(false);
+            }}
+            className="flex-1"
+            autoFocus
+          />
+          <Button size="sm" onClick={handleSave}>
+            <Save className="w-4 h-4" />
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setIsEditing(false)}>
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+      ) : (
+        <div 
+          className="text-lg font-semibold cursor-pointer hover:text-primary transition-colors"
+          onClick={() => setIsEditing(true)}
+        >
+          {segment.title}
+          {segment.artist && (
+            <span className="text-sm text-muted-foreground ml-2">- {segment.artist}</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const Index = () => {
   const [youtubeUrl, setYoutubeUrl] = useState("");
@@ -244,9 +378,6 @@ const Index = () => {
   const [videoId, setVideoId] = useState("");
   const [player, setPlayer] = useState<any>(null);
   const [videoDuration, setVideoDuration] = useState(100);
-  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
-  const [connectedPlatforms, setConnectedPlatforms] = useState<Record<string, ConnectedPlatform>>({});
-  const [showPlatformDialog, setShowPlatformDialog] = useState(false);
   const [cuttingMode, setCuttingMode] = useState<"video" | "audio" | null>(null);
   const [showCuttingOptions, setShowCuttingOptions] = useState(false);
   const [currentEditingFile, setCurrentEditingFile] = useState<{file: File, url: string, type: 'audio' | 'video'} | null>(null);
@@ -363,23 +494,9 @@ const Index = () => {
     return () => clearInterval(interval);
   }, [player]);
 
-  const extractVideoId = (url: string): string | null => {
-    const patterns = [
-      /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/,
-      /youtube\.com\/embed\/([^&\n?#]+)/,
-    ];
-
-    for (const pattern of patterns) {
-      const match = url.match(pattern);
-      if (match && match[1]) {
-        return match[1];
-      }
-    }
-    return null;
-  };
 
   const loadVideo = async () => {
-    const id = extractVideoId(youtubeUrl);
+    const id = extractYouTubeVideoId(youtubeUrl);
     if (!id) {
       alert('Invalid YouTube URL');
       return;
@@ -822,17 +939,16 @@ const Index = () => {
         description: "זה עשוי לקחת מספר דקות",
       });
 
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-youtube-video`, {
+      const response = await fetch(getYouTubeDownloaderUrl(), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({ videoId, quality: 'best' })
+        headers: getAuthHeaders(true),
+        body: JSON.stringify({ videoId, quality: VIDEO_CONFIG.DEFAULT_QUALITY })
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text().catch(() => 'Unknown error');
+        console.error('Download error:', response.status, errorText);
+        throw new Error(`שגיאה בהורדת הסרטון: ${response.status} - ${errorText || 'נסה שוב מאוחר יותר'}`);
       }
 
       // Extract metadata from headers
@@ -1337,60 +1453,13 @@ const Index = () => {
   };
 
   const handlePlatformConnect = (platformName: string) => {
-    // Mock data - בעתיד יחובר ל-API אמיתי
-    const mockData: Record<string, ConnectedPlatform> = {
-      "YouTube": {
-        name: "YouTube",
-        icon: "📺",
-        favorites: [
-          { id: "1", title: "Top Hits 2025", thumbnail: "🎵" },
-          { id: "2", title: "Workout Mix", thumbnail: "💪" },
-          { id: "3", title: "Chill Vibes", thumbnail: "🌊" },
-        ],
-        playlists: [
-          { id: "p1", name: "My Favorites", count: 45 },
-          { id: "p2", name: "Study Music", count: 28 },
-          { id: "p3", name: "Party Mix", count: 67 },
-        ]
-      },
-      "Spotify": {
-        name: "Spotify",
-        icon: "🎵",
-        favorites: [
-          { id: "1", title: "Daily Mix 1", thumbnail: "🎧" },
-          { id: "2", title: "Discover Weekly", thumbnail: "✨" },
-          { id: "3", title: "Release Radar", thumbnail: "🚀" },
-        ],
-        playlists: [
-          { id: "p1", name: "Liked Songs", count: 234 },
-          { id: "p2", name: "Road Trip", count: 56 },
-          { id: "p3", name: "Focus Flow", count: 89 },
-        ]
-      },
-      "SoundCloud": {
-        name: "SoundCloud",
-        icon: "🎧",
-        favorites: [
-          { id: "1", title: "Underground Beats", thumbnail: "🔥" },
-          { id: "2", title: "Indie Discoveries", thumbnail: "🌟" },
-          { id: "3", title: "Electronic Vibes", thumbnail: "⚡" },
-        ],
-        playlists: [
-          { id: "p1", name: "Favorites", count: 78 },
-          { id: "p2", name: "Remixes", count: 42 },
-        ]
-      }
-    };
-
-    if (mockData[platformName]) {
-      setConnectedPlatforms(prev => ({
-        ...prev,
-        [platformName]: mockData[platformName]
-      }));
-      setSelectedPlatform(platformName);
-      setShowPlatformDialog(true);
-      setShowStreamingServices(false);
-    }
+    // TODO: Implement real OAuth connection for streaming platforms
+    // For now, show a message that this feature is coming soon
+    toast({
+      title: "פיצ'ר בקרוב",
+      description: `חיבור ל-${platformName} יהיה זמין בקרוב`,
+    });
+    setShowStreamingServices(false);
   };
 
   return (
@@ -1588,21 +1657,21 @@ const Index = () => {
                       className="w-full justify-start text-sm"
                       onClick={() => handlePlatformConnect("YouTube")}
                     >
-                      📺 YouTube {connectedPlatforms["YouTube"] && <Check className="w-4 h-4 ml-auto text-green-500" />}
+                      📺 YouTube
                     </Button>
                     <Button 
                       variant="ghost" 
                       className="w-full justify-start text-sm"
                       onClick={() => handlePlatformConnect("Spotify")}
                     >
-                      🎵 Spotify {connectedPlatforms["Spotify"] && <Check className="w-4 h-4 ml-auto text-green-500" />}
+                      🎵 Spotify
                     </Button>
                     <Button 
                       variant="ghost" 
                       className="w-full justify-start text-sm"
                       onClick={() => handlePlatformConnect("SoundCloud")}
                     >
-                      🎧 SoundCloud {connectedPlatforms["SoundCloud"] && <Check className="w-4 h-4 ml-auto text-green-500" />}
+                      🎧 SoundCloud
                     </Button>
                     <Button variant="ghost" className="w-full justify-start text-sm">
                       🎵 Apple Music
@@ -1658,74 +1727,13 @@ const Index = () => {
                   </div>
                 )}
               </div>
-              <p className="text-center text-muted-foreground text-sm">Access content from popular platforms</p>
+              <p className="text-center text-muted-foreground text-sm">
+                Streaming platform integration coming soon
+              </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* הצגת תוכן מפלטפורמות מחוברות */}
-        {Object.keys(connectedPlatforms).length > 0 && (
-          <Card className="bg-gradient-to-br from-primary/10 to-accent/10 border-primary/30">
-            <CardHeader>
-              <CardTitle className="text-2xl flex items-center gap-2">
-                <Star className="w-8 h-8 text-primary" />
-                Connected Platforms Content
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {Object.values(connectedPlatforms).map((platform) => (
-                <div key={platform.name} className="border border-border/50 rounded-lg p-4 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl">{platform.icon}</span>
-                    <h3 className="text-xl font-semibold">{platform.name}</h3>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => {
-                        setSelectedPlatform(platform.name);
-                        setShowPlatformDialog(true);
-                      }}
-                    >
-                      View All
-                    </Button>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <h4 className="font-medium text-sm text-muted-foreground">Favorites</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                      {platform.favorites.slice(0, 3).map((fav) => (
-                        <Button
-                          key={fav.id}
-                          variant="outline"
-                          className="justify-start text-sm h-auto py-3"
-                        >
-                          <span className="text-2xl mr-2">{fav.thumbnail}</span>
-                          <span className="truncate">{fav.title}</span>
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <h4 className="font-medium text-sm text-muted-foreground">Playlists</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                      {platform.playlists.slice(0, 3).map((playlist) => (
-                        <Button
-                          key={playlist.id}
-                          variant="outline"
-                          className="justify-between text-sm h-auto py-3"
-                        >
-                          <span className="truncate">{playlist.name}</span>
-                          <Badge variant="secondary" className="ml-2">{playlist.count}</Badge>
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
 
         {/* נגן וחיתוך */}
         <Card className="bg-gradient-to-br from-accent/10 to-primary/10 border-accent/30 shadow-card">
@@ -2821,48 +2829,205 @@ const Index = () => {
                       }}
                       onIdentify={async (id) => {
                         const seg = segments.find(s => s.id === id);
-                        if (!seg || !seg.blob) return;
+                        if (!seg || !seg.blob) {
+                          toast({
+                            title: "אין קובץ לזיהוי",
+                            description: "אנא חתוך את הקטע תחילה",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
 
                         try {
                           toast({
                             title: "מזהה שיר...",
-                            description: "זה עשוי לקחת מספר שניות",
+                            description: "בודק במידע הקיים...",
                           });
 
-                          // Convert blob to base64
-                          const reader = new FileReader();
-                          reader.readAsDataURL(seg.blob);
-                          reader.onloadend = async () => {
-                            const base64 = (reader.result as string).split(',')[1];
+                          // Update segment status
+                          setSegments(prev => prev.map(s => 
+                            s.id === id ? { ...s, status: 'processing' } : s
+                          ));
 
-                            const { data, error } = await supabase.functions.invoke('identify-song', {
-                              body: { audioBlob: base64 }
-                            });
+                          // שלב 1: נסה למצוא מידע מ-description או playlist
+                          let foundSongInfo: { title: string; artist?: string } | null = null;
 
-                            if (error) throw error;
+                          // בדיקה 1: האם יש detectedPlaylist עם זמנים?
+                          if (detectedPlaylist && detectedPlaylist.length > 0) {
+                            // מצא את השיר שמתאים לזמן של ה-segment
+                            const segmentStart = seg.start;
+                            for (const song of detectedPlaylist) {
+                              const songTime = parseTime(song.time);
+                              // בדוק אם הזמן של השיר קרוב לזמן ההתחלה של ה-segment (±5 שניות)
+                              if (Math.abs(songTime - segmentStart) <= 5) {
+                                foundSongInfo = {
+                                  title: song.title,
+                                  artist: song.artist
+                                };
+                                break;
+                              }
+                            }
+                          }
 
-                            if (data.title) {
-                              const songName = `${data.artist} - ${data.title}`;
-                              toast({
-                                title: "השיר זוהה!",
-                                description: songName,
-                              });
-                              
-                              // Update segment title
-                              handleEditSegment(id, songName);
+                          // בדיקה 2: אם לא מצאנו, נסה לחלץ מ-description לפי זמן
+                          if (!foundSongInfo && videoDescription) {
+                            // חיפוש תבניות זמן ב-description
+                            // תבניות אפשריות:
+                            // 1. MM:SS - Song Name
+                            // 2. MM:SS Artist - Song Name
+                            // 3. HH:MM:SS - Song Name
+                            const timePatterns = [
+                              /(\d{1,2}:\d{2}(?::\d{2})?)\s*[-–—]\s*(.+?)(?:\n|$)/g,  // זמן - שם שיר
+                              /(\d{1,2}:\d{2}(?::\d{2})?)\s+(.+?)(?:\n|$)/g,  // זמן שם שיר (בלי מקף)
+                            ];
+                            
+                            for (const timePattern of timePatterns) {
+                              let match;
+                              while ((match = timePattern.exec(videoDescription)) !== null) {
+                                const timeStr = match[1];
+                                const songInfo = match[2].trim();
+                                
+                                // השווה זמן
+                                const songTime = parseTime(timeStr);
+                                // בדוק אם הזמן של השיר קרוב לזמן ההתחלה של ה-segment (±10 שניות)
+                                if (Math.abs(songTime - seg.start) <= 10) {
+                                  // נסה לחלץ artist ו-title
+                                  const parts = songInfo.split(/[-–—]/).map(s => s.trim());
+                                  if (parts.length >= 2) {
+                                    foundSongInfo = {
+                                      artist: parts[0],
+                                      title: parts.slice(1).join(' - ')
+                                    };
+                                  } else {
+                                    foundSongInfo = {
+                                      title: songInfo
+                                    };
+                                  }
+                                  break;
+                                }
+                              }
+                              if (foundSongInfo) break;
+                            }
+                          }
+
+                          // בדיקה 3: אם לא מצאנו, נסה לחלץ מ-title של הסרטון (אם זה שיר בודד)
+                          // רק אם זה segment ראשון או אם אין פלייליסט בכלל
+                          if (!foundSongInfo && videoTitle && (!detectedPlaylist || detectedPlaylist.length === 0 || seg.start < 30)) {
+                            // בדוק אם ה-title נראה כמו שם שיר (format: Artist - Title או Title)
+                            const titlePattern = /^(.+?)\s*[-–—]\s*(.+)$/;
+                            const match = videoTitle.match(titlePattern);
+                            if (match) {
+                              foundSongInfo = {
+                                artist: match[1].trim(),
+                                title: match[2].trim()
+                              };
                             } else {
-                              toast({
-                                title: "השיר לא זוהה",
-                                description: "לא הצלחנו לזהות את השיר",
-                                variant: "destructive"
+                              // אם אין מקף, אולי זה רק שם השיר
+                              foundSongInfo = {
+                                title: videoTitle
+                              };
+                            }
+                          }
+
+                          // אם מצאנו מידע, השתמש בו
+                          if (foundSongInfo) {
+                            const songName = foundSongInfo.artist 
+                              ? `${foundSongInfo.artist} - ${foundSongInfo.title}`
+                              : foundSongInfo.title;
+                            
+                            toast({
+                              title: "השיר זוהה מה-description! 🎵",
+                              description: songName,
+                            });
+                            
+                            // Update segment title and status
+                            handleEditSegment(id, songName);
+                            setSegments(prev => prev.map(s => 
+                              s.id === id ? { 
+                                ...s, 
+                                status: 'identified', 
+                                artist: foundSongInfo?.artist 
+                              } : s
+                            ));
+                            return;
+                          }
+
+                          // שלב 2: אם לא מצאנו במידע הקיים, נשתמש ב-Shazam
+                          toast({
+                            title: "מזהה שיר...",
+                            description: "משתמש ב-Shazam...",
+                          });
+
+                          // Convert blob to File for audio extraction
+                          const blobFile = new File([seg.blob], `segment_${id}.mp4`, { 
+                            type: seg.blob.type || 'video/mp4' 
+                          });
+
+                          // Extract audio from the segment blob first
+                          let audioBlob: Blob | null = null;
+                          
+                          // If it's already audio, use it directly
+                          if (seg.blob.type.startsWith('audio/')) {
+                            audioBlob = seg.blob;
+                          } else {
+                            // Extract audio from video
+                            audioBlob = await extractAudio(blobFile, 'mp3', '192k');
+                          }
+
+                          if (!audioBlob) {
+                            throw new Error('Failed to extract audio from segment');
+                          }
+
+                          // Convert audio blob to base64
+                          const reader = new FileReader();
+                          reader.readAsDataURL(audioBlob);
+                          reader.onloadend = async () => {
+                            try {
+                              const base64 = (reader.result as string).split(',')[1];
+
+                              const { data, error } = await supabase.functions.invoke('identify-song', {
+                                body: { audioBlob: base64 }
                               });
+
+                              if (error) throw error;
+
+                              if (data && data.title) {
+                                const songName = `${data.artist || 'Unknown'} - ${data.title}`;
+                                toast({
+                                  title: "השיר זוהה! 🎵",
+                                  description: songName,
+                                });
+                                
+                                // Update segment title and status
+                                handleEditSegment(id, songName);
+                                setSegments(prev => prev.map(s => 
+                                  s.id === id ? { ...s, status: 'identified', artist: data.artist } : s
+                                ));
+                              } else {
+                                setSegments(prev => prev.map(s => 
+                                  s.id === id ? { ...s, status: 'pending' } : s
+                                ));
+                                toast({
+                                  title: "השיר לא זוהה",
+                                  description: "לא הצלחנו לזהות את השיר. נסה שוב או הוסף שם ידנית.",
+                                  variant: "destructive"
+                                });
+                              }
+                            } catch (error: any) {
+                              setSegments(prev => prev.map(s => 
+                                s.id === id ? { ...s, status: 'pending' } : s
+                              ));
+                              throw error;
                             }
                           };
-                        } catch (error) {
+                        } catch (error: any) {
                           console.error('Error identifying song:', error);
+                          setSegments(prev => prev.map(s => 
+                            s.id === id ? { ...s, status: 'pending' } : s
+                          ));
                           toast({
                             title: "שגיאה בזיהוי השיר",
-                            description: error.message,
+                            description: error.message || "אירעה שגיאה. נסה שוב מאוחר יותר.",
                             variant: "destructive",
                           });
                         }
@@ -3487,76 +3652,6 @@ const Index = () => {
         </Dialog>
       )}
 
-      {/* Dialog להצגת תוכן פלטפורמה */}
-      {showPlatformDialog && selectedPlatform && connectedPlatforms[selectedPlatform] && (
-        <Dialog open={showPlatformDialog} onOpenChange={setShowPlatformDialog}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-2xl flex items-center gap-3">
-                <span className="text-3xl">{connectedPlatforms[selectedPlatform]?.icon}</span>
-                {selectedPlatform} Content
-              </DialogTitle>
-              <DialogDescription>
-                Your personalized favorites and playlists from {selectedPlatform}
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-6 mt-4">
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Star className="w-5 h-5 text-primary" />
-                  Favorites
-                </h3>
-                <div className="grid grid-cols-1 gap-2">
-                  {connectedPlatforms[selectedPlatform].favorites.map((fav) => (
-                    <Button
-                      key={fav.id}
-                      variant="outline"
-                      className="justify-start text-left h-auto py-4"
-                      onClick={() => {
-                        console.log('Loading:', fav.title);
-                        setShowPlatformDialog(false);
-                      }}
-                    >
-                      <span className="text-3xl mr-3">{fav.thumbnail}</span>
-                      <div className="flex-1">
-                        <div className="font-medium">{fav.title}</div>
-                        <div className="text-xs text-muted-foreground">Click to load</div>
-                      </div>
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Layers3 className="w-5 h-5 text-secondary" />
-                  Playlists
-                </h3>
-                <div className="grid grid-cols-1 gap-2">
-                  {connectedPlatforms[selectedPlatform].playlists.map((playlist) => (
-                    <Button
-                      key={playlist.id}
-                      variant="outline"
-                      className="justify-between h-auto py-4"
-                      onClick={() => {
-                        console.log('Loading playlist:', playlist.name);
-                        setShowPlatformDialog(false);
-                      }}
-                    >
-                      <div className="flex-1 text-left">
-                        <div className="font-medium">{playlist.name}</div>
-                        <div className="text-xs text-muted-foreground">{playlist.count} items</div>
-                      </div>
-                      <Badge variant="secondary">{playlist.count}</Badge>
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
 
       {/* Dialog להגדרת זמן קפיצה */}
       <Dialog open={showJumpTimeDialog} onOpenChange={setShowJumpTimeDialog}>
