@@ -1131,7 +1131,7 @@ cd /var/www/yt-slice-and-voice/frontend
 nano ecosystem.config.js
 ```
 
-הוסף:
+הוסף (ודא שאין רווחים מיותרים או תווים מיוחדים):
 ```javascript
 module.exports = {
   apps: [{
@@ -1149,6 +1149,43 @@ module.exports = {
     }
   }]
 };
+```
+
+**חשוב:** 
+- ודא שהקובץ מתחיל עם `module.exports` (ללא רווחים לפני)
+- אין תווים מיוחדים או BOM (Byte Order Mark)
+- כל הסוגריים מסוגרים נכון
+
+**אם יש שגיאה, מחק את הקובץ וצור מחדש:**
+```bash
+# מחק את הקובץ הישן
+rm ecosystem.config.js
+
+# צור מחדש
+cat > ecosystem.config.js << 'EOF'
+module.exports = {
+  apps: [{
+    name: 'yt-slice-frontend',
+    script: 'npm',
+    args: 'run preview',
+    cwd: '/var/www/yt-slice-and-voice/frontend',
+    instances: 1,
+    autorestart: true,
+    watch: false,
+    max_memory_restart: '1G',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 3000
+    }
+  }]
+};
+EOF
+
+# בדוק שהקובץ תקין
+cat ecosystem.config.js
+
+# נסה שוב
+pm2 start ecosystem.config.js
 ```
 
 **הפעל עם PM2:**
@@ -1642,6 +1679,66 @@ nano /var/www/yt-slice-and-voice/youtube_server/.env
 
 # הפעל מחדש
 sudo systemctl restart youtube-server
+```
+
+### שגיאת PM2 - "File ecosystem.config.js malformated"
+
+**תסמינים:**
+```
+[PM2][ERROR] File ecosystem.config.js malformated
+ReferenceError: javascript is not defined
+```
+
+**פתרון:**
+```bash
+cd /var/www/yt-slice-and-voice/frontend
+
+# מחק את הקובץ הישן
+rm ecosystem.config.js
+
+# צור מחדש עם cat (ללא nano כדי למנוע בעיות encoding)
+cat > ecosystem.config.js << 'EOF'
+module.exports = {
+  apps: [{
+    name: 'yt-slice-frontend',
+    script: 'npm',
+    args: 'run preview',
+    cwd: '/var/www/yt-slice-and-voice/frontend',
+    instances: 1,
+    autorestart: true,
+    watch: false,
+    max_memory_restart: '1G',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 3000
+    }
+  }]
+};
+EOF
+
+# בדוק שהקובץ תקין
+cat ecosystem.config.js
+
+# בדוק syntax
+node -c ecosystem.config.js
+
+# נסה שוב עם PM2
+pm2 start ecosystem.config.js
+```
+
+**אם עדיין יש בעיה, נסה גרסה פשוטה יותר:**
+```bash
+cat > ecosystem.config.js << 'EOF'
+module.exports = {
+  apps: [{
+    name: 'yt-slice-frontend',
+    script: 'npm',
+    args: 'run preview',
+    instances: 1,
+    autorestart: true
+  }]
+};
+EOF
 ```
 
 ### שגיאת SSL
