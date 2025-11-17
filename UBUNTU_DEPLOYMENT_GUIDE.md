@@ -120,13 +120,53 @@ mkdir -p yt-slice-and-voice/{frontend,youtube_server}
 
 ### שלב 1: שכפול הפרויקט
 
+**אפשרות 1: שכפול לתיקיית frontend (מומלץ)**
 ```bash
 cd /var/www/yt-slice-and-voice/frontend
 
 # שכפל את הפרויקט
 git clone https://github.com/ZyrticX/Avi_DLP.git .
 
-# או העלה את הקבצים דרך SCP/SFTP
+# עכשיו העתק את youtube_server לתיקייה נפרדת
+cd /var/www/yt-slice-and-voice
+cp -r frontend/youtube_server ./
+
+# או העתק ידנית:
+# mv frontend/youtube_server ./
+```
+
+**אפשרות 2: שכפול לתיקייה ראשית ואז העתקה**
+```bash
+cd /var/www/yt-slice-and-voice
+
+# שכפל את הפרויקט לתיקייה זמנית
+git clone https://github.com/ZyrticX/Avi_DLP.git temp
+
+# העתק את הקבצים הנכונים
+mv temp/src frontend/
+mv temp/package.json frontend/
+mv temp/vite.config.ts frontend/
+mv temp/tsconfig.json frontend/
+mv temp/tailwind.config.ts frontend/
+mv temp/index.html frontend/
+mv temp/public frontend/
+mv temp/youtube_server ./
+
+# מחק את התיקייה הזמנית
+rm -rf temp
+```
+
+**חשוב:** המבנה הסופי צריך להיות:
+```
+/var/www/yt-slice-and-voice/
+├── frontend/          # קבצי React/Vite
+│   ├── src/
+│   ├── package.json
+│   └── ...
+└── youtube_server/    # שרת Python
+    ├── server.py
+    ├── requirements.txt
+    └── ...
 ```
 
 ### שלב 2: התקנת תלויות
@@ -178,15 +218,45 @@ npm run build
 
 ### שלב 1: העתקת קבצים
 
-**אפשרות 1: שכפול מהגיט (מומלץ)**
+**אם כבר שכפלת את הפרויקט לתיקיית frontend:**
+
+```bash
+# העתק את youtube_server מתוך frontend לתיקייה נפרדת
+cd /var/www/yt-slice-and-voice
+
+# אם youtube_server נמצא ב-frontend
+if [ -d "frontend/youtube_server" ]; then
+    cp -r frontend/youtube_server ./
+    echo "youtube_server הועתק בהצלחה"
+fi
+
+# בדוק שהתיקייה קיימת
+ls -la youtube_server/
+```
+
+**אם עדיין לא שכפלת:**
+
 ```bash
 cd /var/www/yt-slice-and-voice
 
-# אם עדיין לא שכפלת את הפרויקט
-git clone https://github.com/ZyrticX/Avi_DLP.git .
+# שכפל את הפרויקט
+git clone https://github.com/ZyrticX/Avi_DLP.git temp
 
-# או אם כבר שכפלת, ודא שיש את התיקייה youtube_server
-ls -la youtube_server/
+# העתק את youtube_server
+mv temp/youtube_server ./
+
+# העתק את קבצי ה-frontend
+mv temp/src frontend/
+mv temp/package.json frontend/
+mv temp/vite.config.ts frontend/
+mv temp/tsconfig.json frontend/
+mv temp/tailwind.config.ts frontend/
+mv temp/index.html frontend/
+mv temp/public frontend/
+# וכל שאר הקבצים של frontend...
+
+# מחק את התיקייה הזמנית
+rm -rf temp
 ```
 
 **אפשרות 2: העתקה ידנית (אם אין גיט)**
