@@ -964,6 +964,170 @@ cat supabase/config.toml
 
 ---
 
+## 🚀 איך להפעיל את כל המערכת?
+
+### סדר הפעלה מומלץ
+
+#### שלב 1: הפעל את Python Server
+
+```bash
+# בדוק שהשירות מוגדר
+sudo systemctl status youtube-server
+
+# אם השירות לא רץ, הפעל אותו
+sudo systemctl start youtube-server
+
+# הפעל בעת אתחול (אם עדיין לא הופעל)
+sudo systemctl enable youtube-server
+
+# בדוק שהשרת רץ
+sudo systemctl status youtube-server
+
+# צפה בלוגים (אם יש בעיות)
+sudo journalctl -u youtube-server -f
+```
+
+**בדיקה מהירה:**
+```bash
+# בדוק שהשרת מגיב מקומית
+curl http://localhost:8000
+
+# אמור להחזיר: {"status": "ok", "service": "YouTube Downloader API"}
+```
+
+#### שלב 2: ודא ש-Frontend בנוי
+
+```bash
+cd /var/www/yt-slice-and-voice/frontend
+
+# בדוק שהתיקייה dist קיימת
+ls -la dist/
+
+# אם לא קיימת או ריקה, בנה מחדש
+npm run build
+
+# ודא שהקבצים נוצרו
+ls -la dist/
+```
+
+#### שלב 3: הפעל את Nginx
+
+```bash
+# בדוק את התצורה
+sudo nginx -t
+
+# אם הכל תקין, טען את התצורה
+sudo systemctl reload nginx
+
+# או הפעל מחדש
+sudo systemctl restart nginx
+
+# בדוק סטטוס
+sudo systemctl status nginx
+
+# ודא ש-Nginx רץ
+sudo systemctl is-active nginx
+```
+
+#### שלב 4: בדוק שהכל עובד
+
+**בדיקת Frontend:**
+```bash
+# בדוק דרך curl
+curl http://65.21.192.187
+
+# או פתח בדפדפן
+# http://65.21.192.187
+```
+
+**בדיקת API דרך Nginx:**
+```bash
+# Health check
+curl http://65.21.192.187/api/
+
+# אמור להחזיר: {"status": "ok", "service": "YouTube Downloader API"}
+```
+
+**בדיקת API ישירות (מקומי):**
+```bash
+curl http://localhost:8000
+```
+
+### הפעלה אוטומטית בעת אתחול
+
+**Python Server:**
+```bash
+# ודא שה-service מופעל בעת אתחול
+sudo systemctl enable youtube-server
+
+# בדוק
+sudo systemctl is-enabled youtube-server
+# אמור להחזיר: enabled
+```
+
+**Nginx:**
+```bash
+# Nginx כבר מופעל אוטומטית בדרך כלל
+sudo systemctl enable nginx
+
+# בדוק
+sudo systemctl is-enabled nginx
+```
+
+### פקודות שימושיות לניהול
+
+**הפעלה:**
+```bash
+# הפעל את Python Server
+sudo systemctl start youtube-server
+
+# הפעל את Nginx
+sudo systemctl start nginx
+```
+
+**עצירה:**
+```bash
+# עצור את Python Server
+sudo systemctl stop youtube-server
+
+# עצור את Nginx
+sudo systemctl stop nginx
+```
+
+**הפעלה מחדש:**
+```bash
+# הפעל מחדש את Python Server
+sudo systemctl restart youtube-server
+
+# הפעל מחדש את Nginx
+sudo systemctl restart nginx
+```
+
+**צפייה בלוגים:**
+```bash
+# לוגים של Python Server
+sudo journalctl -u youtube-server -f
+
+# לוגים של Nginx
+sudo tail -f /var/log/nginx/access.log
+sudo tail -f /var/log/nginx/error.log
+
+# לוגים של המערכת
+sudo journalctl -f
+```
+
+### Checklist לפני הפעלה
+
+- [ ] Python Server `.env` מוגדר עם `API_KEY` ו-`ALLOWED_ORIGINS`
+- [ ] Frontend `.env.production` מוגדר עם כל המשתנים
+- [ ] Frontend בנוי (`npm run build` הושלם)
+- [ ] Nginx תצורה נכונה (`/etc/nginx/sites-available/yt-slice-and-voice`)
+- [ ] Nginx תצורה מופעלת (`/etc/nginx/sites-enabled/yt-slice-and-voice`)
+- [ ] Python Server service מוגדר (`/etc/systemd/system/youtube-server.service`)
+- [ ] Supabase Secrets מוגדרים (אם משתמש ב-Edge Functions)
+
+---
+
 ## ✅ בדיקות
 
 ### בדיקת Frontend
