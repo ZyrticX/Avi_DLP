@@ -968,22 +968,90 @@ cat supabase/config.toml
 
 ### סדר הפעלה מומלץ
 
-#### שלב 1: הפעל את Python Server
+#### שלב 0: בדוק שהכל מוכן לפני הפעלה
 
 ```bash
-# בדוק שהשירות מוגדר
-sudo systemctl status youtube-server
+# 1. ודא ש-Python Server מוכן
+cd /var/www/yt-slice-and-voice/youtube_server
 
-# אם השירות לא רץ, הפעל אותו
+# בדוק שהסביבה הוירטואלית קיימת
+ls -la venv/
+
+# בדוק שקובץ .env קיים
+ls -la .env
+
+# בדוק שקובץ server.py קיים
+ls -la server.py
+
+# 2. ודא ש-Frontend מוכן
+cd /var/www/yt-slice-and-voice/frontend
+
+# בדוק שקובץ .env.production קיים
+ls -la .env.production
+
+# בדוק שהתיקייה dist קיימת (אם לא, בנה: npm run build)
+ls -la dist/
+```
+
+#### שלב 1: צור Systemd Service (אם עדיין לא קיים)
+
+**בדוק אם ה-service כבר קיים:**
+```bash
+sudo systemctl status youtube-server
+```
+
+**אם אתה רואה שגיאה "Unit youtube-server.service could not be found", צור את ה-service:**
+
+```bash
+# צור את קובץ ה-service
+sudo nano /etc/systemd/system/youtube-server.service
+```
+
+**העתק את התוכן הבא:**
+```ini
+[Unit]
+Description=YouTube Downloader API Server
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/yt-slice-and-voice/youtube_server
+Environment="PATH=/var/www/yt-slice-and-voice/youtube_server/venv/bin"
+ExecStart=/var/www/yt-slice-and-voice/youtube_server/venv/bin/python server.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**שמור וצא:** `Ctrl+X`, `Y`, `Enter`
+
+**טען את ה-service:**
+```bash
+sudo systemctl daemon-reload
+```
+
+#### שלב 2: הפעל את Python Server
+
+```bash
+# הפעל את השירות
 sudo systemctl start youtube-server
 
-# הפעל בעת אתחול (אם עדיין לא הופעל)
+# הפעל בעת אתחול (כדי שהשרת יתחיל אוטומטית אחרי אתחול)
 sudo systemctl enable youtube-server
 
 # בדוק שהשרת רץ
 sudo systemctl status youtube-server
+```
 
-# צפה בלוגים (אם יש בעיות)
+**אם אתה רואה שגיאה, בדוק את הלוגים:**
+```bash
+# צפה בלוגים
+sudo journalctl -u youtube-server -n 50
+
+# או צפה בזמן אמת
 sudo journalctl -u youtube-server -f
 ```
 
@@ -994,6 +1062,15 @@ curl http://localhost:8000
 
 # אמור להחזיר: {"status": "ok", "service": "YouTube Downloader API"}
 ```
+
+**אם יש שגיאה, נסה להריץ ידנית:**
+```bash
+cd /var/www/yt-slice-and-voice/youtube_server
+source venv/bin/activate
+python server.py
+```
+
+זה יעזור לך לראות את השגיאה ישירות.
 
 #### שלב 2: ודא ש-Frontend בנוי
 
@@ -1118,12 +1195,26 @@ sudo journalctl -f
 
 ### Checklist לפני הפעלה
 
-- [ ] Python Server `.env` מוגדר עם `API_KEY` ו-`ALLOWED_ORIGINS`
-- [ ] Frontend `.env.production` מוגדר עם כל המשתנים
+**Python Server:**
+- [ ] סביבה וירטואלית נוצרה (`venv/` קיים)
+- [ ] תלויות הותקנו (`pip install -r requirements.txt`)
+- [ ] קובץ `.env` קיים עם `API_KEY` ו-`ALLOWED_ORIGINS`
+- [ ] קובץ `server.py` קיים
+- [ ] Systemd service נוצר (`/etc/systemd/system/youtube-server.service`)
+
+**Frontend:**
+- [ ] תלויות הותקנו (`npm install`)
+- [ ] קובץ `.env.production` קיים עם כל המשתנים
 - [ ] Frontend בנוי (`npm run build` הושלם)
-- [ ] Nginx תצורה נכונה (`/etc/nginx/sites-available/yt-slice-and-voice`)
-- [ ] Nginx תצורה מופעלת (`/etc/nginx/sites-enabled/yt-slice-and-voice`)
-- [ ] Python Server service מוגדר (`/etc/systemd/system/youtube-server.service`)
+- [ ] תיקייה `dist/` קיימת ולא ריקה
+
+**Nginx:**
+- [ ] Nginx מותקן (`sudo apt install nginx`)
+- [ ] תצורה נוצרה (`/etc/nginx/sites-available/yt-slice-and-voice`)
+- [ ] תצורה מופעלת (`/etc/nginx/sites-enabled/yt-slice-and-voice`)
+- [ ] תצורה נכונה (`sudo nginx -t` עובר)
+
+**Supabase (אופציונלי):**
 - [ ] Supabase Secrets מוגדרים (אם משתמש ב-Edge Functions)
 
 ---
