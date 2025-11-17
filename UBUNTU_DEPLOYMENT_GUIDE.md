@@ -1007,7 +1007,7 @@ sudo systemctl status youtube-server
 sudo nano /etc/systemd/system/youtube-server.service
 ```
 
-**העתק את התוכן הבא:**
+**העתק את התוכן הבא (חשוב: אין רווחים מיותרים או תווים מיוחדים!):**
 ```ini
 [Unit]
 Description=YouTube Downloader API Server
@@ -1017,7 +1017,7 @@ After=network.target
 Type=simple
 User=www-data
 WorkingDirectory=/var/www/yt-slice-and-voice/youtube_server
-Environment="PATH=/var/www/yt-slice-and-voice/youtube_server/venv/bin"
+Environment=PATH=/var/www/yt-slice-and-voice/youtube_server/venv/bin
 ExecStart=/var/www/yt-slice-and-voice/youtube_server/venv/bin/python server.py
 Restart=always
 RestartSec=10
@@ -1026,7 +1026,21 @@ RestartSec=10
 WantedBy=multi-user.target
 ```
 
+**חשוב מאוד:**
+- אין רווחים לפני או אחרי `=`
+- אין גרשיים מיותרים ב-`Environment` (לא `Environment="..."` אלא `Environment=...`)
+- כל שורה חייבת להיות תקינה
+
 **שמור וצא:** `Ctrl+X`, `Y`, `Enter`
+
+**אם יש שגיאות, בדוק את הקובץ:**
+```bash
+# בדוק את הקובץ
+sudo cat /etc/systemd/system/youtube-server.service
+
+# או ערוך מחדש
+sudo nano /etc/systemd/system/youtube-server.service
+```
 
 **טען את ה-service:**
 ```bash
@@ -1423,6 +1437,59 @@ EOF
 
 # עכשיו נסה שוב
 pip install -r requirements.txt
+```
+
+### שגיאת Systemd Service - "Assignment outside of section"
+
+**תסמינים:**
+```
+systemd[1]: /etc/systemd/system/youtube-server.service:1: Assignment outside of section. Ignoring.
+systemd[1]: /etc/systemd/system/youtube-server.service:17: Missing '=', ignoring line.
+```
+
+**פתרון:**
+```bash
+# בדוק את הקובץ
+sudo cat /etc/systemd/system/youtube-server.service
+
+# ערוך את הקובץ מחדש
+sudo nano /etc/systemd/system/youtube-server.service
+```
+
+**ודא שהקובץ נראה כך בדיוק (ללא רווחים מיותרים או תווים מיוחדים):**
+```ini
+[Unit]
+Description=YouTube Downloader API Server
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/yt-slice-and-voice/youtube_server
+Environment=PATH=/var/www/yt-slice-and-voice/youtube_server/venv/bin
+ExecStart=/var/www/yt-slice-and-voice/youtube_server/venv/bin/python server.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**חשוב:**
+- אין גרשיים ב-`Environment` (לא `Environment="PATH=..."` אלא `Environment=PATH=...`)
+- אין רווחים לפני או אחרי `=`
+- כל שורה חייבת להיות תקינה
+
+**אחרי התיקון:**
+```bash
+# טען מחדש
+sudo systemctl daemon-reload
+
+# הפעל מחדש
+sudo systemctl restart youtube-server
+
+# בדוק סטטוס
+sudo systemctl status youtube-server
 ```
 
 ### Python Server לא מתחיל
