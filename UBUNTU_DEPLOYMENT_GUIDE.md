@@ -537,6 +537,224 @@ module.exports = {
 
 ---
 
+## 🔑 איך להגדיר API KEY ודומיין?
+
+### יצירת API KEY
+
+**API KEY הוא מפתח סודי שמגן על ה-API שלך מפני שימוש לא מורשה.**
+
+#### שלב 1: יצירת API KEY חזק
+
+```bash
+# בשרת Ubuntu, הרץ:
+python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+
+# או עם openssl:
+openssl rand -hex 32
+```
+
+זה יפלוט מפתח ארוך, למשל:
+```
+aBc123XyZ456DeF789GhI012JkL345MnO678PqR901StU234VwX567YzA890
+```
+
+**שמור את המפתח הזה!** תצטרך אותו בהמשך.
+
+#### שלב 2: הגדרת API KEY ב-Python Server
+
+```bash
+cd /var/www/yt-slice-and-voice/youtube_server
+nano .env
+```
+
+הוסף:
+```env
+API_KEY=aBc123XyZ456DeF789GhI012JkL345MnO678PqR901StU234VwX567YzA890
+```
+
+**חשוב:** המפתח הזה צריך להיות **זהה** גם ב-Supabase Secrets!
+
+#### שלב 3: הגדרת API KEY ב-Supabase
+
+1. היכנס ל-[Supabase Dashboard](https://supabase.com/dashboard)
+2. בחר את הפרויקט שלך
+3. לך ל-**Project Settings** → **Edge Functions** → **Secrets**
+4. לחץ על **Add new secret**
+5. הוסף:
+   - **Name**: `YOUTUBE_API_KEY`
+   - **Value**: אותו מפתח שיצרת (המפתח מ-`.env` של Python Server)
+
+#### שלב 4: הגדרת API KEY ב-Frontend
+
+```bash
+cd /var/www/yt-slice-and-voice/frontend
+nano .env.production
+```
+
+הוסף:
+```env
+VITE_YOUTUBE_API_KEY=aBc123XyZ456DeF789GhI012JkL345MnO678PqR901StU234VwX567YzA890
+```
+
+**חשוב:** בנה מחדש אחרי שינוי:
+```bash
+npm run build
+```
+
+---
+
+### הגדרת דומיין
+
+**דומיין זה הכתובת של האתר שלך (למשל: `example.com`).**
+
+#### אפשרות 1: שימוש ב-IP Address (ללא דומיין)
+
+אם אין לך דומיין, תוכל להשתמש ב-IP של השרת:
+
+```bash
+# בדוק את ה-IP של השרת
+curl ifconfig.me
+# או
+hostname -I
+```
+
+**דוגמה:** אם ה-IP שלך הוא `123.45.67.89`:
+
+**ב-Frontend (.env.production):**
+```env
+VITE_YOUTUBE_API_URL=http://123.45.67.89:8000
+```
+
+**ב-Python Server (.env):**
+```env
+ALLOWED_ORIGINS=http://123.45.67.89
+```
+
+**ב-Nginx:**
+```nginx
+server {
+    listen 80;
+    server_name 123.45.67.89;  # IP במקום דומיין
+    
+    root /var/www/yt-slice-and-voice/frontend/dist;
+    # ...
+}
+```
+
+**⚠️ מגבלות:**
+- לא תוכל להשתמש ב-SSL (HTTPS) עם IP בלבד
+- כתובת פחות ידידותית למשתמשים
+- לא מומלץ ל-production
+
+#### אפשרות 2: שימוש בדומיין (מומלץ!)
+
+**שלב 1: רכישת דומיין**
+
+קנה דומיין מ:
+- [Namecheap](https://www.namecheap.com/)
+- [GoDaddy](https://www.godaddy.com/)
+- [Cloudflare](https://www.cloudflare.com/)
+- או כל ספק אחר
+
+**שלב 2: הגדרת DNS**
+
+לך ל-DNS של הדומיין שלך והוסף רשומות:
+
+**A Record** (עבור Frontend):
+```
+Type: A
+Name: @ (או your-domain.com)
+Value: [IP של השרת שלך]
+TTL: 3600
+```
+
+**A Record** (עבור API subdomain):
+```
+Type: A
+Name: api
+Value: [IP של השרת שלך]
+TTL: 3600
+```
+
+**דוגמה:**
+אם הדומיין שלך הוא `myapp.com` וה-IP הוא `123.45.67.89`:
+
+```
+@ (myapp.com)     → A → 123.45.67.89
+api (api.myapp.com) → A → 123.45.67.89
+```
+
+**שלב 3: עדכון משתני הסביבה**
+
+**Frontend (.env.production):**
+```env
+VITE_SUPABASE_URL=https://esrtnatrbkjheskjcipz.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key_here
+VITE_YOUTUBE_API_URL=https://api.myapp.com
+VITE_YOUTUBE_API_KEY=aBc123XyZ456DeF789GhI012JkL345MnO678PqR901StU234VwX567YzA890
+```
+
+**Python Server (.env):**
+```env
+API_KEY=aBc123XyZ456DeF789GhI012JkL345MnO678PqR901StU234VwX567YzA890
+PORT=8000
+ALLOWED_ORIGINS=https://myapp.com,https://www.myapp.com
+```
+
+**שלב 4: עדכון Nginx**
+
+```bash
+sudo nano /etc/nginx/sites-available/yt-slice-and-voice
+```
+
+החלף `your-domain.com` ב-`myapp.com`:
+```nginx
+server {
+    listen 80;
+    server_name myapp.com www.myapp.com;
+    # ...
+}
+
+server {
+    listen 80;
+    server_name api.myapp.com;
+    # ...
+}
+```
+
+**שלב 5: בדיקת DNS**
+
+```bash
+# בדוק שהדומיין מפנה ל-IP הנכון
+nslookup myapp.com
+nslookup api.myapp.com
+
+# או
+dig myapp.com
+dig api.myapp.com
+```
+
+**שלב 6: התקנת SSL (חובה עם דומיין!)**
+
+```bash
+sudo certbot --nginx -d myapp.com -d www.myapp.com -d api.myapp.com
+```
+
+---
+
+### סיכום - מה להגדיר איפה?
+
+| משתנה | איפה | דוגמה |
+|--------|------|-------|
+| **API_KEY** | Python Server `.env` | `aBc123XyZ...` |
+| **API_KEY** | Supabase Secrets | `aBc123XyZ...` (זהה!) |
+| **VITE_YOUTUBE_API_KEY** | Frontend `.env.production` | `aBc123XyZ...` (זהה!) |
+| **VITE_YOUTUBE_API_URL** | Frontend `.env.production` | `https://api.myapp.com` |
+| **ALLOWED_ORIGINS** | Python Server `.env` | `https://myapp.com` |
+| **server_name** | Nginx config | `myapp.com` |
+
+---
+
 ## 🔐 משתני סביבה - סיכום מלא
 
 ### Frontend (.env.production)
