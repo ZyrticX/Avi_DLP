@@ -202,6 +202,7 @@ npm run preview
 **מדריכים מפורטים:**
 
 - 📦 **[מדריך התקנה מלא](INSTALLATION_GUIDE.md)** - מדריך מפורט להתקנה מקומית
+- 🐧 **[מדריך העלאה ל-Ubuntu VPS](UBUNTU_DEPLOYMENT_GUIDE.md)** - מדריך מפורט להעלאה לשרת Ubuntu
 - 📖 **[מדריך העלאה מלא בעברית](DEPLOYMENT_GUIDE_HEBREW.md)** - מדריך מפורט להעלאת כל המערכת
 - ⚡ **[מדריך העלאה מהיר](QUICK_DEPLOYMENT.md)** - מדריך קצר וממוקד
 - 🔐 **[משתני סביבה](ENVIRONMENT_VARIABLES.md)** - רשימה מלאה של כל משתני הסביבה
