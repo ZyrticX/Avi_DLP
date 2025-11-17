@@ -21,11 +21,21 @@ export const API_CONFIG = {
  * Get the YouTube downloader endpoint URL
  */
 export const getYouTubeDownloaderUrl = (): string => {
+  console.log('[getYouTubeDownloaderUrl] API_CONFIG:', {
+    useCustomApi: API_CONFIG.youtube.useCustomApi,
+    baseUrl: API_CONFIG.youtube.baseUrl,
+    supabaseUrl: API_CONFIG.supabase.url
+  });
+  
   if (API_CONFIG.youtube.useCustomApi && API_CONFIG.youtube.baseUrl) {
-    return `${API_CONFIG.youtube.baseUrl}/download`;
+    const url = `${API_CONFIG.youtube.baseUrl}/download`;
+    console.log('[getYouTubeDownloaderUrl] Using custom API:', url);
+    return url;
   }
   // Fallback to Supabase Edge Function
-  return `${API_CONFIG.supabase.url}/functions/v1/download-youtube-video`;
+  const url = `${API_CONFIG.supabase.url}/functions/v1/download-youtube-video`;
+  console.log('[getYouTubeDownloaderUrl] Using Supabase fallback:', url);
+  return url;
 };
 
 /**

@@ -357,12 +357,17 @@ const Index = () => {
 
 
   const loadVideo = async () => {
+    console.log('[loadVideo] Called with URL:', youtubeUrl);
     const id = extractYouTubeVideoId(youtubeUrl);
+    console.log('[loadVideo] Extracted video ID:', id);
+    
     if (!id) {
+      console.error('[loadVideo] Invalid YouTube URL:', youtubeUrl);
       alert('Invalid YouTube URL');
       return;
     }
 
+    console.log('[loadVideo] Starting download for video ID:', id);
     setVideoId(id);
     setIsLoadingVideo(true);
     
@@ -370,6 +375,7 @@ const Index = () => {
     setCurrentEditingFile(null);
     
     // Download the video
+    console.log('[loadVideo] Calling downloadYouTubeVideo...');
     const downloadedFile = await downloadYouTubeVideo(id);
     if (downloadedFile) {
       const url = URL.createObjectURL(downloadedFile);
@@ -795,16 +801,27 @@ const Index = () => {
 
   const downloadYouTubeVideo = async (videoId: string): Promise<File | null> => {
     try {
+      const apiUrl = getYouTubeDownloaderUrl();
+      const headers = getAuthHeaders(true);
+      
+      console.log('[downloadYouTubeVideo] API URL:', apiUrl);
+      console.log('[downloadYouTubeVideo] Headers:', headers);
+      console.log('[downloadYouTubeVideo] Request body:', { videoId, quality: VIDEO_CONFIG.DEFAULT_QUALITY });
+      
       toast({
         title: "מוריד סרטון מיוטיוב...",
         description: "זה עשוי לקחת מספר דקות",
       });
 
-      const response = await fetch(getYouTubeDownloaderUrl(), {
+      console.log('[downloadYouTubeVideo] Sending fetch request...');
+      const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: getAuthHeaders(true),
+        headers: headers,
         body: JSON.stringify({ videoId, quality: VIDEO_CONFIG.DEFAULT_QUALITY })
       });
+      
+      console.log('[downloadYouTubeVideo] Response status:', response.status);
+      console.log('[downloadYouTubeVideo] Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
