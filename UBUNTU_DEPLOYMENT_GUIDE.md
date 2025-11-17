@@ -1246,6 +1246,76 @@ sudo systemctl status yt-slice-frontend
 
 **⚠️ הערה:** גם כאן תצטרך לעדכן את Nginx להפנות ל-`http://localhost:3000`.
 
+#### שלב 2.6: הרצת Frontend ב-Dev Mode (לבדיקות)
+
+אם אתה רוצה להריץ את ה-Frontend ב-dev mode לבדיקות מקומיות:
+
+```bash
+cd /var/www/yt-slice-and-voice/frontend
+
+# הרץ dev server
+npm run dev
+```
+
+**חשוב:**
+- Dev server רץ על `http://localhost:5173` (או פורט אחר שמוצג בטרמינל)
+- זה רק לבדיקות מקומיות - לא ל-production!
+- צריך לפתוח את הפורט ב-firewall אם אתה רוצה לגשת מבחוץ
+
+**אם אתה רוצה לגשת מבחוץ (לא מומלץ ל-production!):**
+
+1. **פתח את הפורט ב-firewall:**
+```bash
+# בדוק איזה פורט ה-dev server משתמש (בדרך כלל 5173)
+# פתח את הפורט ב-firewall
+sudo ufw allow 5173/tcp
+
+# או אם אתה משתמש בפורט אחר (8080 למשל)
+sudo ufw allow 8080/tcp
+
+# בדוק סטטוס
+sudo ufw status
+```
+
+2. **הרץ את ה-dev server עם host 0.0.0.0:**
+```bash
+cd /var/www/yt-slice-and-voice/frontend
+
+# הרץ עם host חיצוני
+npm run dev -- --host 0.0.0.0 --port 8080
+```
+
+או עדכן את `vite.config.ts`:
+```typescript
+export default defineConfig({
+  server: {
+    host: '0.0.0.0',
+    port: 8080,
+  },
+  // ... שאר ההגדרות
+})
+```
+
+3. **גש מהדפדפן:**
+```
+http://65.21.192.187:8080
+```
+
+**⚠️ אזהרות:**
+- Dev mode לא מיועד ל-production!
+- זה צורך יותר משאבים
+- אין אופטימיזציות
+- לא בטוח ל-production
+
+**בדיקת לוגים:**
+```bash
+# אם אתה מריץ עם PM2
+pm2 logs yt-slice-frontend
+
+# אם אתה מריץ ישירות בטרמינל
+# הלוגים יופיעו ישירות בטרמינל
+```
+
 #### שלב 3: הפעל את Nginx
 
 ```bash
@@ -1739,6 +1809,127 @@ module.exports = {
   }]
 };
 EOF
+```
+
+### בעיות עם Dev Server - לא מצליח לגשת או להוריד סרטונים
+
+**תסמינים:**
+- לא מצליח לגשת ל-`http://65.21.192.187:8080`
+- לא מצליח להוריד סרטונים
+- אין לוגים
+
+**פתרון:**
+
+**1. בדוק שהפורט פתוח ב-firewall:**
+```bash
+# בדוק סטטוס firewall
+sudo ufw status
+
+# פתח את הפורט (8080 או 5173)
+sudo ufw allow 8080/tcp
+
+# או פתח את כל הפורטים (לא מומלץ!)
+# sudo ufw allow from any to any port 8080
+```
+
+**2. בדוק שה-dev server רץ:**
+```bash
+# בדוק שהתהליך רץ
+ps aux | grep vite
+# או
+ps aux | grep node
+
+# בדוק שהפורט פתוח
+sudo netstat -tulpn | grep 8080
+# או
+sudo ss -tulpn | grep 8080
+```
+
+**3. הרץ את ה-dev server עם host חיצוני:**
+```bash
+cd /var/www/yt-slice-and-voice/frontend
+
+# הרץ עם host 0.0.0.0 כדי שיהיה נגיש מבחוץ
+npm run dev -- --host 0.0.0.0 --port 8080
+```
+
+**4. בדוק את משתני הסביבה:**
+```bash
+# בדוק שקובץ .env קיים (לא רק .env.production!)
+ls -la .env
+
+# אם אין, צור אותו
+nano .env
+```
+
+הוסף:
+```env
+VITE_SUPABASE_URL=https://esrtnatrbkjheskjcipz.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key_here
+VITE_YOUTUBE_API_URL=http://65.21.192.187/api
+VITE_YOUTUBE_API_KEY=your_api_key_here
+```
+
+**5. בדוק שה-Python Server רץ:**
+```bash
+# בדוק שהשרת רץ
+sudo systemctl status youtube-server
+
+# בדוק שהוא מגיב
+curl http://localhost:8000
+
+# בדוק דרך Nginx
+curl http://65.21.192.187/api/
+```
+
+**6. בדוק לוגים:**
+```bash
+# לוגים של Python Server
+sudo journalctl -u youtube-server -f
+
+# לוגים של Nginx
+sudo tail -f /var/log/nginx/error.log
+
+# לוגים של dev server (אם רץ בטרמינל)
+# הלוגים יופיעו ישירות בטרמינל
+```
+
+**7. בדוק את הקונסול בדפדפן:**
+- פתח את Developer Tools (F12)
+- לך ל-Console
+- בדוק אם יש שגיאות
+- לך ל-Network
+- בדוק את הבקשות ל-API
+
+**8. בדוק CORS:**
+```bash
+# בדוק את ה-.env של Python Server
+cat /var/www/yt-slice-and-voice/youtube_server/.env
+
+# ודא ש-ALLOWED_ORIGINS כולל את הכתובת הנכונה
+# אם אתה משתמש ב-dev server על פורט 8080:
+ALLOWED_ORIGINS=http://65.21.192.187:8080,http://65.21.192.187
+
+# הפעל מחדש את השרת
+sudo systemctl restart youtube-server
+```
+
+**9. בדוק את ה-API URL ב-Frontend:**
+```bash
+# בדוק את קובץ .env
+cat .env
+
+# ודא ש-VITE_YOUTUBE_API_URL נכון
+# צריך להיות: http://65.21.192.187/api
+```
+
+**10. נסה להוריד סרטון ישירות דרך API:**
+```bash
+# בדוק שההורדה עובדת ישירות
+curl -X POST http://65.21.192.187/api/download \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your_api_key_here" \
+  -d '{"url": "https://www.youtube.com/watch?v=VIDEO_ID"}'
 ```
 
 ### שגיאת SSL
