@@ -178,13 +178,40 @@ npm run build
 
 ### שלב 1: העתקת קבצים
 
+**אפשרות 1: שכפול מהגיט (מומלץ)**
+```bash
+cd /var/www/yt-slice-and-voice
+
+# אם עדיין לא שכפלת את הפרויקט
+git clone https://github.com/ZyrticX/Avi_DLP.git .
+
+# או אם כבר שכפלת, ודא שיש את התיקייה youtube_server
+ls -la youtube_server/
+```
+
+**אפשרות 2: העתקה ידנית (אם אין גיט)**
 ```bash
 cd /var/www/yt-slice-and-voice/youtube_server
 
-# העתק את הקבצים מהפרויקט המקומי או שכפל מהגיט
-# הקבצים הנדרשים:
+# ודא שיש לך את הקבצים הבאים:
 # - server.py
 # - requirements.txt
+
+# בדוק שהקבצים קיימים
+ls -la
+
+# אם חסרים, העתק אותם מהמחשב המקומי:
+# scp server.py user@your-server:/var/www/yt-slice-and-voice/youtube_server/
+# scp requirements.txt user@your-server:/var/www/yt-slice-and-voice/youtube_server/
+```
+
+**חשוב:** ודא שהקובץ `requirements.txt` קיים לפני המשך!
+```bash
+# בדוק שהקובץ קיים
+cd /var/www/yt-slice-and-voice/youtube_server
+ls -la requirements.txt
+
+# אם הקובץ לא קיים, תראה שגיאה
 ```
 
 ### שלב 2: יצירת סביבה וירטואלית
@@ -758,6 +785,43 @@ npm run build
 
 **סיבה:** `vite` הוא ב-`devDependencies` ולכן צריך להריץ `npm install` (לא `--production`).
 
+### שגיאת "requirements.txt: No such file or directory"
+
+**תסמינים:**
+```
+ERROR: Could not open requirements file: [Errno 2] No such file or directory: 'requirements.txt'
+```
+
+**פתרון:**
+```bash
+# ודא שאתה בתיקייה הנכונה
+cd /var/www/yt-slice-and-voice/youtube_server
+pwd
+
+# בדוק שהקובץ קיים
+ls -la requirements.txt
+
+# אם הקובץ לא קיים, העתק אותו:
+# דרך 1: שכפל מהגיט
+cd /var/www/yt-slice-and-voice
+git pull  # או git clone אם עדיין לא שכפלת
+
+# דרך 2: העתק ידנית מהמחשב המקומי
+# scp requirements.txt user@your-server:/var/www/yt-slice-and-voice/youtube_server/
+
+# דרך 3: צור את הקובץ ידנית
+cat > requirements.txt << EOF
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+yt-dlp==2023.11.16
+pydantic==2.5.0
+python-multipart==0.0.6
+EOF
+
+# עכשיו נסה שוב
+pip install -r requirements.txt
+```
+
 ### Python Server לא מתחיל
 
 ```bash
@@ -772,6 +836,10 @@ ls -la /var/www/yt-slice-and-voice/youtube_server
 
 # בדוק שהסביבה הוירטואלית קיימת
 ls -la /var/www/yt-slice-and-voice/youtube_server/venv
+
+# בדוק שהקבצים הנדרשים קיימים
+ls -la /var/www/yt-slice-and-voice/youtube_server/server.py
+ls -la /var/www/yt-slice-and-voice/youtube_server/requirements.txt
 ```
 
 ### Nginx לא משרת קבצים
