@@ -164,7 +164,7 @@ nano .env.production
 ```env
 VITE_SUPABASE_URL=https://esrtnatrbkjheskjcipz.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key_here
-VITE_YOUTUBE_API_URL=https://your-domain.com/api
+VITE_YOUTUBE_API_URL=https://api.your-domain.com
 VITE_YOUTUBE_API_KEY=your_api_key_here
 ```
 
@@ -478,6 +478,115 @@ SUPABASE_ANON_KEY=your_anon_key_here
 ```
 
 **מיקום:** Supabase Dashboard → Project Settings → Edge Functions → Secrets
+
+---
+
+## 🔍 איך לדעת איפה הכל רץ?
+
+### בדיקת תצורת Nginx
+
+```bash
+# צפה בקובץ התצורה של Nginx
+sudo cat /etc/nginx/sites-available/yt-slice-and-voice
+
+# או ערוך אותו
+sudo nano /etc/nginx/sites-available/yt-slice-and-voice
+```
+
+**מה לחפש:**
+- **Frontend**: שים לב ל-`server_name` - זה הדומיין של ה-Frontend
+  ```nginx
+  server_name your-domain.com www.your-domain.com;
+  ```
+  זה אומר שה-Frontend רץ על: `https://your-domain.com`
+
+- **API**: שים לב ל-`server_name` של ה-API
+  ```nginx
+  server_name api.your-domain.com;
+  ```
+  זה אומר שה-API רץ על: `https://api.your-domain.com`
+
+### בדיקת פורטים פעילים
+
+```bash
+# בדוק איזה פורטים פתוחים
+sudo netstat -tulpn | grep LISTEN
+
+# או עם ss (מודרני יותר)
+sudo ss -tulpn | grep LISTEN
+```
+
+**מה לחפש:**
+- **Port 80** (HTTP) - Nginx
+- **Port 443** (HTTPS) - Nginx עם SSL
+- **Port 8000** - Python Server (רק מקומי, לא חיצוני)
+
+### בדיקת שירותים פעילים
+
+```bash
+# בדוק שירותי systemd
+sudo systemctl list-units --type=service --state=running | grep -E "(nginx|youtube)"
+
+# בדוק סטטוס ספציפי
+sudo systemctl status nginx
+sudo systemctl status youtube-server
+```
+
+### בדיקת כתובות IP של השרת
+
+```bash
+# כתובת IP פנימית
+hostname -I
+
+# כתובת IP חיצונית (אם יש)
+curl ifconfig.me
+```
+
+### בדיקת DNS (אם יש דומיין)
+
+```bash
+# בדוק מה ה-DNS מחזיר
+nslookup your-domain.com
+nslookup api.your-domain.com
+
+# או עם dig
+dig your-domain.com
+dig api.your-domain.com
+```
+
+### בדיקת משתני סביבה
+
+```bash
+# Frontend - בדוק את הקובץ
+cat /var/www/yt-slice-and-voice/frontend/.env.production
+
+# Python Server - בדוק את הקובץ
+cat /var/www/yt-slice-and-voice/youtube_server/.env
+```
+
+**מה לבדוק:**
+- `VITE_YOUTUBE_API_URL` צריך להיות: `https://api.your-domain.com`
+- `ALLOWED_ORIGINS` צריך לכלול: `https://your-domain.com`
+
+### בדיקת תצורת Supabase
+
+```bash
+# בדוק את קובץ התצורה
+cat supabase/config.toml
+```
+
+**מה לחפש:**
+- `project_id` - זה ה-project ID של Supabase שלך
+- כתובת ה-URL תהיה: `https://[project_id].supabase.co`
+
+### סיכום - איפה הכל רץ?
+
+| שירות | כתובת | איך לבדוק |
+|------|-------|-----------|
+| **Frontend** | `https://your-domain.com` | `curl https://your-domain.com` |
+| **API (Python)** | `https://api.your-domain.com` | `curl https://api.your-domain.com` |
+| **API מקומי** | `http://localhost:8000` | `curl http://localhost:8000` |
+| **Supabase** | `https://[project_id].supabase.co` | בדוק ב-`config.toml` |
 
 ---
 
