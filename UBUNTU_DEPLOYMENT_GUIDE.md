@@ -134,11 +134,10 @@ git clone https://github.com/ZyrticX/Avi_DLP.git .
 ```bash
 cd /var/www/yt-slice-and-voice/frontend
 
-# התקן תלויות
-npm install --production
-
-# או אם אתה רוצה גם dev dependencies
+# התקן תלויות (חובה! כולל devDependencies כי vite נדרש לבנייה)
 npm install
+
+# הערה: צריך את כל התלויות (לא רק --production) כי vite הוא ב-devDependencies
 ```
 
 ### שלב 3: בניית הפרויקט
@@ -729,6 +728,35 @@ crontab -e
 ---
 
 ## 🚨 פתרון בעיות
+
+### שגיאת "vite: not found" בעת בנייה
+
+**תסמינים:**
+```
+sh: 1: vite: not found
+```
+
+**פתרון:**
+```bash
+cd /var/www/yt-slice-and-voice/frontend
+
+# ודא שאתה בתיקייה הנכונה
+pwd
+
+# נקה node_modules אם קיים
+rm -rf node_modules package-lock.json
+
+# התקן מחדש את כל התלויות (חובה!)
+npm install
+
+# בדוק ש-vite מותקן
+ls node_modules/.bin/vite
+
+# עכשיו נסה לבנות מחדש
+npm run build
+```
+
+**סיבה:** `vite` הוא ב-`devDependencies` ולכן צריך להריץ `npm install` (לא `--production`).
 
 ### Python Server לא מתחיל
 
