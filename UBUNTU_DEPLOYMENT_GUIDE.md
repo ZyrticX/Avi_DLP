@@ -318,7 +318,10 @@ API_KEY=your_very_secret_api_key_here_min_32_chars
 PORT=8000
 
 # CORS Origins - כתובות ה-Frontend
-ALLOWED_ORIGINS=https://your-domain.com,https://www.your-domain.com
+# אם יש דומיין:
+# ALLOWED_ORIGINS=https://your-domain.com,https://www.your-domain.com
+# אם אין דומיין, השתמש ב-IP:
+ALLOWED_ORIGINS=http://65.21.192.187
 
 # Cookies (אופציונלי - רק אם יש לך cookies.txt)
 # COOKIES_FILE_PATH=/var/www/yt-slice-and-voice/youtube_server/cookies.txt
@@ -618,28 +621,55 @@ curl ifconfig.me
 hostname -I
 ```
 
-**דוגמה:** אם ה-IP שלך הוא `123.45.67.89`:
+**דוגמה עם IP שלך:** `65.21.192.187`
 
 **ב-Frontend (.env.production):**
 ```env
-VITE_YOUTUBE_API_URL=http://123.45.67.89:8000
+VITE_SUPABASE_URL=https://esrtnatrbkjheskjcipz.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key_here
+VITE_YOUTUBE_API_URL=http://65.21.192.187:8000
+VITE_YOUTUBE_API_KEY=your_api_key_here
 ```
 
 **ב-Python Server (.env):**
 ```env
-ALLOWED_ORIGINS=http://123.45.67.89
+API_KEY=your_api_key_here
+PORT=8000
+ALLOWED_ORIGINS=http://65.21.192.187
 ```
 
 **ב-Nginx:**
 ```nginx
+# Frontend - שרת סטטי
 server {
     listen 80;
-    server_name 123.45.67.89;  # IP במקום דומיין
+    server_name 65.21.192.187;  # IP במקום דומיין
     
     root /var/www/yt-slice-and-voice/frontend/dist;
-    # ...
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+
+# Python API Server - Reverse Proxy
+server {
+    listen 80;
+    server_name 65.21.192.187;  # אותו IP, אבל דרך Nginx
+
+    location / {
+        proxy_pass http://localhost:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
 }
 ```
+
+**⚠️ הערה חשובה:** עם IP בלבד, לא תוכל להשתמש ב-SSL (HTTPS). אם אתה רוצה HTTPS, תצטרך דומיין.
 
 **⚠️ מגבלות:**
 - לא תוכל להשתמש ב-SSL (HTTPS) עם IP בלבד
