@@ -198,14 +198,20 @@ cd /var/www/yt-slice-and-voice/frontend
 nano .env.production
 ```
 
-הוסף את התוכן הבא (החלף בערכים האמיתיים):
+הוסף את התוכן הבא (עם IP שלך: 65.21.192.187):
 
 ```env
 VITE_SUPABASE_URL=https://esrtnatrbkjheskjcipz.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key_here
-VITE_YOUTUBE_API_URL=https://api.your-domain.com
+# אפשרות B: הכל דרך Nginx על פורט 80
+VITE_YOUTUBE_API_URL=http://65.21.192.187/api
 VITE_YOUTUBE_API_KEY=your_api_key_here
 ```
+
+**חשוב:** עם אפשרות B, ה-API יהיה זמין דרך `/api/`:
+- `http://65.21.192.187/api/` - health check
+- `http://65.21.192.187/api/info` - קבלת מידע על סרטון
+- `http://65.21.192.187/api/download` - הורדת סרטון
 
 **חשוב:** בנה מחדש אחרי שינוי `.env.production`:
 ```bash
@@ -627,7 +633,8 @@ hostname -I
 ```env
 VITE_SUPABASE_URL=https://esrtnatrbkjheskjcipz.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key_here
-VITE_YOUTUBE_API_URL=http://65.21.192.187:8000
+# עם אפשרות B (כל דרך Nginx):
+VITE_YOUTUBE_API_URL=http://65.21.192.187/api
 VITE_YOUTUBE_API_KEY=your_api_key_here
 ```
 
@@ -638,36 +645,59 @@ PORT=8000
 ALLOWED_ORIGINS=http://65.21.192.187
 ```
 
-**ב-Nginx:**
+**ב-Nginx (אפשרות B - מומלץ! הכל דרך פורט 80):**
 ```nginx
-# Frontend - שרת סטטי
 server {
     listen 80;
-    server_name 65.21.192.187;  # IP במקום דומיין
+    server_name 65.21.192.187;
     
     root /var/www/yt-slice-and-voice/frontend/dist;
     index index.html;
 
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-}
+    # Gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss application/json;
 
-# Python API Server - Reverse Proxy
-server {
-    listen 80;
-    server_name 65.21.192.187;  # אותו IP, אבל דרך Nginx
-
-    location / {
-        proxy_pass http://localhost:8000;
+    # API דרך /api - כל בקשה ל-/api/* תועבר ל-Python Server
+    location /api/ {
+        proxy_pass http://localhost:8000/;
         proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        
+        # Timeouts for large video downloads
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 300s;
+        proxy_send_timeout 300s;
+        
+        # Buffer settings
+        proxy_buffering off;
+        proxy_request_buffering off;
+    }
+
+    # Frontend routes
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Cache static assets
+    location ~* \.(jpg|jpeg|png|gif|ico|css|js|svg|woff|woff2|ttf|eot)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
     }
 }
 ```
+
+**חשוב:** עם תצורה זו:
+- Frontend: `http://65.21.192.187/`
+- API: `http://65.21.192.187/api/`
 
 **⚠️ הערה חשובה:** עם IP בלבד, לא תוכל להשתמש ב-SSL (HTTPS). אם אתה רוצה HTTPS, תצטרך דומיין.
 
