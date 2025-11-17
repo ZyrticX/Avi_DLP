@@ -23,6 +23,8 @@
 
 ## התקנה והפעלה
 
+> **📦 מדריך התקנה מפורט:** [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md) - מדריך מלא שלב אחר שלב להתקנת כל המערכת
+
 ### דרישות מקדימות
 
 - Node.js 18+ (מומלץ להשתמש ב-[nvm](https://github.com/nvm-sh/nvm))
@@ -199,6 +201,7 @@ npm run preview
 
 **מדריכים מפורטים:**
 
+- 📦 **[מדריך התקנה מלא](INSTALLATION_GUIDE.md)** - מדריך מפורט להתקנה מקומית
 - 📖 **[מדריך העלאה מלא בעברית](DEPLOYMENT_GUIDE_HEBREW.md)** - מדריך מפורט להעלאת כל המערכת
 - ⚡ **[מדריך העלאה מהיר](QUICK_DEPLOYMENT.md)** - מדריך קצר וממוקד
 - 🔐 **[משתני סביבה](ENVIRONMENT_VARIABLES.md)** - רשימה מלאה של כל משתני הסביבה
