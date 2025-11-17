@@ -1932,6 +1932,94 @@ curl -X POST http://65.21.192.187/api/download \
   -d '{"url": "https://www.youtube.com/watch?v=VIDEO_ID"}'
 ```
 
+**11. בדוק שהכפתור LOAD VIDEO עובד:**
+
+אם אתה לא רואה בקשה כשאתה לוחץ על LOAD VIDEO:
+
+**א. בדוק את הקונסול בדפדפן:**
+- פתח Developer Tools (F12)
+- לך ל-Console
+- לחץ על LOAD VIDEO
+- בדוק אם יש שגיאות JavaScript
+
+**ב. בדוק את משתני הסביבה בדפדפן:**
+- פתח Developer Tools (F12)
+- לך ל-Console
+- הרץ:
+```javascript
+console.log('VITE_YOUTUBE_API_URL:', import.meta.env.VITE_YOUTUBE_API_URL);
+console.log('VITE_YOUTUBE_API_KEY:', import.meta.env.VITE_YOUTUBE_API_KEY ? 'SET' : 'NOT SET');
+console.log('VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL);
+```
+
+**ג. בדוק את Network tab:**
+- פתח Developer Tools (F12)
+- לך ל-Network
+- לחץ על LOAD VIDEO
+- בדוק אם יש בקשה ל-`/api/download` או `/functions/v1/download-youtube-video`
+- אם אין בקשה בכלל, יש שגיאת JavaScript
+
+**ד. הוסף console.log ל-debug:**
+```bash
+# ערוך את הקובץ
+cd /var/www/yt-slice-and-voice/frontend
+nano src/pages/Index.tsx
+```
+
+מצא את הפונקציה `loadVideo` (שורה ~359) והוסף בתחילתה:
+```typescript
+const loadVideo = async () => {
+  console.log('loadVideo called!', { youtubeUrl });
+  const id = extractYouTubeVideoId(youtubeUrl);
+  console.log('Extracted video ID:', id);
+  if (!id) {
+    alert('Invalid YouTube URL');
+    return;
+  }
+  // ... שאר הקוד
+```
+
+**ה. ודא שקובץ .env קיים ונקרא:**
+```bash
+cd /var/www/yt-slice-and-voice/frontend
+
+# בדוק שקובץ .env קיים
+ls -la .env
+
+# בדוק את התוכן
+cat .env
+
+# ודא שהערכים נכונים:
+# VITE_YOUTUBE_API_URL=http://65.21.192.187/api
+# VITE_YOUTUBE_API_KEY=your_api_key_here
+```
+
+**ו. הפעל מחדש את ה-dev server:**
+```bash
+# עצור את ה-dev server (Ctrl+C)
+# הפעל מחדש
+npm run dev -- --host 0.0.0.0 --port 8080
+```
+
+**ז. בדוק שהפונקציה נקראת:**
+- פתח את הקונסול בדפדפן
+- לחץ על LOAD VIDEO
+- אמור לראות: `loadVideo called!` ו-`Extracted video ID: ...`
+- אם לא רואה, הכפתור לא מחובר או יש שגיאה לפני
+
+**ח. בדוק את ה-API URL:**
+```bash
+# בדוק שהפונקציה getYouTubeDownloaderUrl מחזירה את ה-URL הנכון
+# פתח Console בדפדפן והרץ:
+# (אם יש גישה ל-API_CONFIG)
+console.log('API URL:', window.location.origin + '/api/download');
+```
+
+**ט. בדוק CORS:**
+אם אתה רואה שגיאת CORS בקונסול:
+- ודא ש-`ALLOWED_ORIGINS` ב-Python Server כולל `http://65.21.192.187:8080`
+- הפעל מחדש: `sudo systemctl restart youtube-server`
+
 ### שגיאת SSL
 
 ```bash
