@@ -59,7 +59,7 @@ class VideoInfoRequest(BaseModel):
 
 
 class DownloadRequest(BaseModel):
-    url: str
+    url: Optional[str] = None
     video_id: Optional[str] = None
     quality: Optional[str] = "best"
     format: Optional[str] = "mp4"
@@ -129,7 +129,7 @@ async def get_video_info(url: Optional[str] = None, video_id: Optional[str] = No
 
 
 @app.post("/download")
-async def download_video(request: DownloadRequest):
+async def download_video(request: DownloadRequest, x_api_key: Optional[str] = Header(None, alias="X-API-Key")):
     """
     הורדת סרטון YouTube
     Parameters:
