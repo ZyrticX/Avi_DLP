@@ -1101,6 +1101,114 @@ npm run build
 ls -la dist/
 ```
 
+#### שלב 2.5: הפעלת Frontend כשירות (אופציונלי)
+
+**אפשרות A: עם Nginx (מומלץ - כבר מוגדר!)**
+
+אם אתה משתמש ב-Nginx לשרת קבצים סטטיים (כמו בתצורה שלנו), **אין צורך בשירות נפרד** ל-Frontend. Nginx משרת את הקבצים מ-`dist/` אוטומטית.
+
+**בדוק שהכל עובד:**
+```bash
+# בדוק ש-Nginx רץ
+sudo systemctl status nginx
+
+# בדוק שהקבצים נגישים
+curl http://65.21.192.187
+```
+
+**אפשרות B: עם PM2 (אם אתה רוצה preview server)**
+
+אם אתה רוצה להריץ את ה-Frontend כ-preview server (לא מומלץ ל-production):
+
+```bash
+# התקן PM2 אם עדיין לא התקנת
+sudo npm install -g pm2
+
+# עבור לתיקיית Frontend
+cd /var/www/yt-slice-and-voice/frontend
+
+# צור קובץ תצורה ל-PM2
+nano ecosystem.config.js
+```
+
+הוסף:
+```javascript
+module.exports = {
+  apps: [{
+    name: 'yt-slice-frontend',
+    script: 'npm',
+    args: 'run preview',
+    cwd: '/var/www/yt-slice-and-voice/frontend',
+    instances: 1,
+    autorestart: true,
+    watch: false,
+    max_memory_restart: '1G',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 3000
+    }
+  }]
+};
+```
+
+**הפעל עם PM2:**
+```bash
+# הפעל את ה-application
+pm2 start ecosystem.config.js
+
+# הפעל בעת אתחול
+pm2 startup
+# העתק והרץ את הפקודה שהפלטה
+
+# שמור את הרשימה
+pm2 save
+
+# בדוק סטטוס
+pm2 status
+
+# צפה בלוגים
+pm2 logs yt-slice-frontend
+```
+
+**⚠️ הערה:** עם PM2, תצטרך לעדכן את תצורת Nginx להפנות ל-`http://localhost:3000` במקום לקבצים הסטטיים.
+
+**אפשרות C: עם Systemd (אם אתה מעדיף systemd)**
+
+```bash
+# צור קובץ service
+sudo nano /etc/systemd/system/yt-slice-frontend.service
+```
+
+הוסף:
+```ini
+[Unit]
+Description=YT Slice Frontend Preview Server
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/yt-slice-and-voice/frontend
+Environment=NODE_ENV=production
+Environment=PORT=3000
+ExecStart=/usr/bin/npm run preview
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**הפעל:**
+```bash
+sudo systemctl daemon-reload
+sudo systemctl start yt-slice-frontend
+sudo systemctl enable yt-slice-frontend
+sudo systemctl status yt-slice-frontend
+```
+
+**⚠️ הערה:** גם כאן תצטרך לעדכן את Nginx להפנות ל-`http://localhost:3000`.
+
 #### שלב 3: הפעל את Nginx
 
 ```bash
@@ -1221,6 +1329,7 @@ sudo journalctl -f
 - [ ] קובץ `.env.production` קיים עם כל המשתנים
 - [ ] Frontend בנוי (`npm run build` הושלם)
 - [ ] תיקייה `dist/` קיימת ולא ריקה
+- [ ] Nginx משרת את הקבצים הסטטיים (או PM2/Systemd אם משתמש ב-preview server)
 
 **Nginx:**
 - [ ] Nginx מותקן (`sudo apt install nginx`)
