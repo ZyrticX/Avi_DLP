@@ -138,6 +138,17 @@ async def download_video(request: DownloadRequest):
     - quality: איכות הסרטון (best, worst, 1080p, 720p, etc.)
     - format: פורמט הקובץ (mp4, webm, etc.)
     """
+    print(f"[download] Received request: video_id={request.video_id}, url={request.url}, quality={request.quality}")
+    
+    # Verify API key if configured
+    if API_KEY:
+        if x_api_key != API_KEY:
+            print(f"[download] Invalid API Key provided (expected: {API_KEY[:10]}..., got: {x_api_key[:10] if x_api_key else 'None'}...)")
+            raise HTTPException(status_code=401, detail="Invalid API Key")
+        print(f"[download] API Key verified")
+    else:
+        print(f"[download] No API Key configured, skipping verification")
+    
     try:
         # אם יש video_id, נבנה את ה-URL
         if request.video_id and not request.url:
@@ -145,6 +156,8 @@ async def download_video(request: DownloadRequest):
         
         if not request.url:
             raise HTTPException(status_code=400, detail="URL or video_id is required")
+        
+        print(f"[download] Using URL: {request.url}")
 
         # יצירת תיקייה זמנית להורדה
         temp_dir = tempfile.mkdtemp()
@@ -171,11 +184,15 @@ async def download_video(request: DownloadRequest):
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             # ראשית, נקבל את שם הסרטון
+            print(f"[download] Extracting info for: {request.url}")
             info_dict = ydl.extract_info(request.url, download=False)
             video_title = info_dict.get('title', 'video')
+            print(f"[download] Video title: {video_title}")
             
             # עכשיו נוריד את הסרטון
+            print(f"[download] Starting download...")
             ydl.download([request.url])
+            print(f"[download] Download completed!")
 
             # נמצא את הקובץ שהורד
             downloaded_files = list(Path(temp_dir).glob('*'))
@@ -215,8 +232,12 @@ async def download_video(request: DownloadRequest):
         )
 
     except yt_dlp.utils.DownloadError as e:
+        print(f"[download] DownloadError: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Error downloading video: {str(e)}")
     except Exception as e:
+        print(f"[download] Exception: {type(e).__name__}: {str(e)}")
+        import traceback
+        print(f"[download] Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 

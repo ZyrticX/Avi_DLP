@@ -814,12 +814,34 @@ const Index = () => {
       });
 
       console.log('[downloadYouTubeVideo] Sending fetch request...');
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify({ videoId, quality: VIDEO_CONFIG.DEFAULT_QUALITY })
-      });
       
+      // Create AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.error('[downloadYouTubeVideo] Request timeout after 5 minutes');
+        controller.abort();
+      }, 5 * 60 * 1000); // 5 minutes timeout
+      
+      let response: Response;
+      try {
+        response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify({ videoId, quality: VIDEO_CONFIG.DEFAULT_QUALITY }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          console.error('[downloadYouTubeVideo] Request was aborted (timeout)');
+          throw new Error('הבקשה נדחתה - זמן ההמתנה פג. הסרטון כנראה גדול מדי או יש בעיה בשרת.');
+        }
+        console.error('[downloadYouTubeVideo] Fetch error:', error);
+        throw new Error(`שגיאה בשליחת הבקשה: ${error.message || 'נסה שוב מאוחר יותר'}`);
+      }
+      
+      console.log('[downloadYouTubeVideo] Response received!');
       console.log('[downloadYouTubeVideo] Response status:', response.status);
       console.log('[downloadYouTubeVideo] Response headers:', Object.fromEntries(response.headers.entries()));
 
